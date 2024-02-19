@@ -61,10 +61,55 @@ int main() {
     }
     // ==================================================================================================
 
+    // for checking
+    
+	// for (int row=0; row<n; row++){
+	// 	for (int col=0; col<n; col++){
+    //         mat[row*n+col] = 1;
+	// 		printf("[%d]:\t%d\t", row*n+col, mat[row*n+col]);
+    //         if (col==n-1) printf("\n");
+	// 	}
+	// }
+
+    // creating a 10x10 matrix
+    n = 10;
+    double mat[n*n];
+
+    // test case (provided in the lab handout)
+    double weights[] = {3.63, 3.02, 3.82, 3.42, 3.59, 2.87, 3.03, 3.46, 3.36, 3.3};
+    double lengths[] = {53.1, 49.7, 48.4, 54.2, 54.9, 43.7, 47.2, 45.2, 54.4, 50.4};
+
+    // initializing each column of the matrix with the values from the weights vector
+    for (int row=0; row<n; row++){
+		for (int col=0; col<n; col++){
+            mat[col*n+row] = weights[col];
+		}
+	}
+
+    // for checking (printing)
+    for (int row=0; row<n; row++){
+		for (int col=0; col<n; col++){
+			printf("[%d]:\t%.2f\t", row*n+col, mat[row*n+col]);
+            if (col==n-1) printf("\n");
+		}
+	}
+
+    // ==================================================================================================
     
     /*
-        creating an nxn matrix
+        creating an nxn double matrix
     */
+    // double mat[n*n];
+
+
+
+    
+
+
+
+
+
+    
 
     return 0;
 }
