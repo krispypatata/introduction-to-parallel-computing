@@ -20,10 +20,9 @@
 /*
     a function for printing a square matrix that is made with 1d array
 */
-// ======================================================================================================
 void printMatrix(double mat[], int n) {
     // total field width including decimal point and sign
-    int fieldWidth = 5; 
+    int fieldWidth = 8; 
 
     // number of digits after the decimal point
     int precision = 2;  
@@ -51,13 +50,12 @@ void printMatrix(double mat[], int n) {
 /*
     a function for printing a vector
 */
-// ======================================================================================================
-void printVector(double vector[], int n) {
+void printVector(double vector[], int n, int nDecimals) {
     // total field width including decimal point and sign
     int fieldWidth = 5; 
 
     // number of digits after the decimal point
-    int precision = 2;
+    int precision = nDecimals;
 
     // traverse through the elements of the vector
     printf("[ ");
@@ -87,7 +85,6 @@ void printVector(double vector[], int n) {
     returns:
         vector v (pearson correlation coefficients)
 */
-// ======================================================================================================
 double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     double *X = mat;
     double *y = vector;
@@ -124,7 +121,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     // --------------------------------------------------------------------------------------------------
     // for checking
     printf("\nSUM OF X:\n");
-    printVector(sum_X, n);
+    printVector(sum_X, n, 2);
 
     printf("\n\nSUM OF Y:");
     printf("\n%.2f\n", sum_y);
@@ -159,7 +156,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     // --------------------------------------------------------------------------------------------------
     // for checking
     printf("\nSUM OF X SQUARES:\n");
-    printVector(sum_X_squared, n);
+    printVector(sum_X_squared, n, 2);
     
     printf("\n\nSUM OF Y SQUARES:");
     printf("\n%.2f\n", sum_y_squared);
@@ -188,7 +185,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     // --------------------------------------------------------------------------------------------------
     // for checking
     printf("\n\nSUM OF CROSS PRODUCTS:\n");
-    printVector(sum_cross_product, n);
+    printVector(sum_cross_product, n, 2);
     printf("\n");
     // --------------------------------------------------------------------------------------------------
 
@@ -201,14 +198,14 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     for (int i=0; i<n; i++) {
         double r = 0;
-        r = ( n*sum_cross_product[i] - sum_X[i] * sum_y ) / sqrt( (n*sum_X_squared[1] - sum_X[i]*sum_X[i]) * (n*sum_y_squared - sum_y*sum_y) );
+        r = ( n*sum_cross_product[i] - sum_X[i] * sum_y ) / sqrt( (n*sum_X_squared[i] - sum_X[i]*sum_X[i]) * (n*sum_y_squared - sum_y*sum_y) );
         v[i] = r;
     }
 
     // --------------------------------------------------------------------------------------------------
     // for checking
     printf("\n\nPEARSON CORRELATION COEFFICIENTS:\n");
-    printVector(v, n);
+    printVector(v, n, 4);
     printf("\n");
     // --------------------------------------------------------------------------------------------------
 
@@ -231,7 +228,6 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     testing the implementation of the created Pearson Correlation Coefficient algorithm with the test
     cases provided in the lab handout
 */
-// ======================================================================================================
 void testAlgorithm () {
     // creating a 10x10 matrix
     int n = 10;
@@ -255,7 +251,8 @@ void testAlgorithm () {
     // for checking (printing)
     printMatrix(mat, n);
 
-    // for monitoring the execution time
+    // measure execution time
+    // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
     clock_t begin = clock();
 
     // compute for the Pearson Correlation Coefficient of the matrix and the given vector
@@ -266,7 +263,7 @@ void testAlgorithm () {
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 
     // display the execution time
-    printf("\nExecution time: %f\n", time_spent);
+    printf("\nExecution time: %fs\n", time_spent);
 
     // free the matrix to avoid memory leaks
     free(mat);
@@ -281,9 +278,11 @@ void testAlgorithm () {
     Start of the main program
 */
 int main() {
+    // for asking input from the user
     char fgetsInput[128];
     char dump[128];
     int n;
+
     // for the while loop
     bool isInvalidInput = true;
 
@@ -326,20 +325,62 @@ int main() {
     }
     // ==================================================================================================
     /*
-        
+        Testing the algorithm by using the test cases provided in the lab handout
     */
-    testAlgorithm();
-
+    // ==================================================================================================
+    // testAlgorithm();
 
     // ==================================================================================================
-    
     /*
         creating an nxn double matrix
     */
-    double *mat = (double*) malloc(n * n * sizeof(double));
+    // ==================================================================================================
+    double *mat = (double *) malloc(n * n * sizeof(double));
+
+    // ==================================================================================================
+    /*
+        Filling in the generated nxn matrix with random values
+    */
+    // ==================================================================================================
+    // traversing through the elements of the matrix
+    for (int row=0; row<n; row++) {
+        for (int col=0; col<n; col++) {
+            mat[row*n+col] = (row+1)*100;
+            if (row==n-1){
+                mat[row*n+col] = 100*col;
+            }
+        }
+    }
+
+    double *vector = (double *) malloc(n * sizeof(double));
+    for (int i=0; i<n; i++) {
+        vector[i] = i+1;
+    }
+
+    printf("\nVector:");
+    printVector(vector, n, 2);
+    printf("\n");
+    // for checking (printing)
+    printMatrix(mat, n);
 
     // measure execution time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
+    clock_t begin = clock();
+
+    // compute for the Pearson Correlation Coefficient of the matrix and the given vector
+    double *pearson_correlation_coefficients = pearson_cor(mat, vector, n, n);
+
+    // calculate the execution time of the algorithm
+    clock_t end = clock();
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+
+    // display the execution time
+    printf("\nExecution time: %fs\n", time_spent);
+
+    // free the matrix to avoid memory leaks
+    free(mat);
+    free(vector);
+    free(pearson_correlation_coefficients);
 
 
     return 0;
