@@ -9,6 +9,7 @@
 		This is a simple program that computes the Pearson Correlation Coefficient of a matrix and a vector.
 */
 
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -20,12 +21,12 @@
 /*
     a function for printing a square matrix that is made with 1d array
 */
-void printMatrix(double mat[], int n) {
+void printMatrix(double mat[], int n, int nDecimal) {
     // total field width including decimal point and sign
     int fieldWidth = 8; 
 
     // number of digits after the decimal point
-    int precision = 2;  
+    int precision = nDecimal;  
 
     // traversing through the elements of the matrix
     for (int row=0; row<n; row++) {
@@ -50,12 +51,12 @@ void printMatrix(double mat[], int n) {
 /*
     a function for printing a vector
 */
-void printVector(double vector[], int n, int nDecimals) {
+void printVector(double vector[], int n, int nDecimal) {
     // total field width including decimal point and sign
     int fieldWidth = 5; 
 
     // number of digits after the decimal point
-    int precision = nDecimals;
+    int precision = nDecimal;
 
     // traverse through the elements of the vector
     printf("[ ");
@@ -121,7 +122,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     // --------------------------------------------------------------------------------------------------
     // for checking
     printf("\nSUM OF X:\n");
-    printVector(sum_X, n, 2);
+    printVector(sum_X, n, 0);
 
     printf("\n\nSUM OF Y:");
     printf("\n%.2f\n", sum_y);
@@ -156,10 +157,10 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     // --------------------------------------------------------------------------------------------------
     // for checking
     printf("\nSUM OF X SQUARES:\n");
-    printVector(sum_X_squared, n, 2);
+    printVector(sum_X_squared, n, 0);
     
     printf("\n\nSUM OF Y SQUARES:");
-    printf("\n%.2f\n", sum_y_squared);
+    printf("\n%.0f\n", sum_y_squared);
     printf("\n");
 
     // --------------------------------------------------------------------------------------------------
@@ -185,7 +186,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     // --------------------------------------------------------------------------------------------------
     // for checking
     printf("\n\nSUM OF CROSS PRODUCTS:\n");
-    printVector(sum_cross_product, n, 2);
+    printVector(sum_cross_product, n, 0);
     printf("\n");
     // --------------------------------------------------------------------------------------------------
 
@@ -249,7 +250,7 @@ void testAlgorithm () {
 	}
 
     // for checking (printing)
-    printMatrix(mat, n);
+    printMatrix(mat, n, 2);
 
     // measure execution time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
@@ -275,6 +276,23 @@ void testAlgorithm () {
 
 // ======================================================================================================
 /*
+    a function that generates a random non-zero integer
+*/
+int generateNonZeroInteger() {
+    int random_integer;
+    
+    // loop until a non-zero integer is generated
+    do {
+        random_integer = rand() % 2001 - 1000;
+    } while (random_integer == 0);
+
+    // return the generated random number
+    return random_integer;
+}
+
+
+// ======================================================================================================
+/*
     Start of the main program
 */
 int main() {
@@ -285,6 +303,10 @@ int main() {
 
     // for the while loop
     bool isInvalidInput = true;
+
+    // seed the random number generator
+    // makes sure that random numbers are actually generated every time this program is executed
+    srand(time(NULL)); 
 
     // ==================================================================================================
     /*
@@ -332,7 +354,7 @@ int main() {
 
     // ==================================================================================================
     /*
-        creating an nxn double matrix
+        Creating an nxn double matrix
     */
     // ==================================================================================================
     double *mat = (double *) malloc(n * n * sizeof(double));
@@ -345,23 +367,30 @@ int main() {
     // traversing through the elements of the matrix
     for (int row=0; row<n; row++) {
         for (int col=0; col<n; col++) {
-            mat[row*n+col] = (row+1)*100;
-            if (row==n-1){
-                mat[row*n+col] = 100*col;
-            }
+            // generate a random non-zero integer and put it in the currently selected cell
+            mat[row*n+col] = generateNonZeroInteger();
+
+            // mat[row*n+col] = (row+1)*100;
+            // if (row==n-1){
+            //     mat[row*n+col] = 100*col;
+            // }
         }
     }
 
     double *vector = (double *) malloc(n * sizeof(double));
     for (int i=0; i<n; i++) {
-        vector[i] = i+1;
+        // generate a random non-zero integer and put it in the currently selected cell
+        vector[i] = generateNonZeroInteger();
+
+        // vector[i] = i+1;
     }
 
-    printf("\nVector:");
-    printVector(vector, n, 2);
-    printf("\n");
     // for checking (printing)
-    printMatrix(mat, n);
+    printf("\nVector:");
+    printVector(vector, n, 0);
+    printf("\n");
+    
+    printMatrix(mat, n, 0);
 
     // measure execution time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
