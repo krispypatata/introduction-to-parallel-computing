@@ -9,9 +9,148 @@
 		This is a simple program that computes the Pearson Correlation Coefficient of a matrix and a vector.
 */
 
-#include <stdio.h>
-#include <stdbool.h>
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
+// ======================================================================================================
+/*
+    a fucntion to compute the Pearson Correlation Coefficient vector of an nxn square matrix X 
+    with a nx1 vector y
+
+    parameters:
+        matrix X
+        vector y, and
+        value of n, and
+
+    returns:
+        vector v (pearson correlation coefficients)
+*/
+double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
+    double *X = mat;
+    double *y = vector;
+    int m = nRow;
+    int n = nCol;
+
+    // vector for the Pearson Correlation coefficients
+    double *r = (double*) malloc(n * sizeof(double));
+
+    // ==================================================================================================
+    /* 
+        Step 1: Calculate the sums of x and y
+    */
+    // ==================================================================================================
+    double *sum_X = (double *) malloc (n * sizeof(double));
+    double sum_y = 0;
+
+    // traverse through the columns of matrix x
+    for (int i=0; i<m; i++) {
+        double sum_col = 0;
+        for (int j=0; j<n; j++) {
+            sum_col += X[j*n+i];
+        }
+
+        // add the computed sum of the column to sum_X
+        sum_X[i] = sum_col;
+    }
+
+    // traverse through the elements of vector y
+    for (int i=0; i<m; i++) {
+        sum_y += y[i];
+    }
+
+    // --------------------------------------------------------------------------------------------------
+    // for checking
+    printf("\n\nSUM OF Y:");
+    printf("\n%.2f\n", sum_y);
+    
+    printf("\nSUM OF X:");
+    for (int i=0; i<m; i++) {
+        printf("\n%.2f", sum_X[i]);
+    }
+    printf("\n");
+    // --------------------------------------------------------------------------------------------------
+
+    // ==================================================================================================
+    /*
+        Step 2: Calculate x2 and y2 and their sums
+    */
+    // ==================================================================================================
+    double *sum_X_squared = (double *) malloc (n * sizeof(double));
+    double sum_y_squared = 0;
+
+    // traverse through the columns of matrix x, square all elements and get their sum
+    for (int i=0; i<m; i++) {
+        double sum_col_squared = 0;
+        for (int j=0; j<n; j++) {
+            sum_col_squared += X[j*n+i]*X[j*n+i];
+        }
+
+        // add the computed sum of the column to sum_X_squared
+        sum_X_squared[i] = sum_col_squared;
+    }
+
+    // traverse through the elements of vector y, square all elements and get their sum
+    for (int i=0; i<m; i++) {
+        sum_y_squared += y[i]*y[i];
+    }
+
+    // --------------------------------------------------------------------------------------------------
+    // for checking
+    printf("\n\nSUM OF Y SQUARES:");
+    printf("\n%.2f\n", sum_y_squared);
+    
+    printf("\nSUM OF X SQUARES:");
+    for (int i=0; i<n; i++) {
+        printf("\n%.2f", sum_X_squared[i]);
+    }
+    printf("\n");
+    // --------------------------------------------------------------------------------------------------
+
+    // ==================================================================================================
+    /*
+        Step 3: Calculate the cross product and its sum
+    */
+    // ==================================================================================================
+    double *sum_cross_product = (double *) malloc (n * sizeof(double));
+
+    // traverse through the columns of matrix x, compute for the cross product of each column and vector y
+    for (int i=0; i<m; i++) {
+        double sum_col_cross_product = 0;
+        for (int j=0; j<n; j++) {
+            sum_col_cross_product += X[j*n+i] * y[j];
+        }
+
+        // add the computed sum of the column to sum_X_squared
+        sum_cross_product[i] = sum_col_cross_product;
+    }
+
+    // --------------------------------------------------------------------------------------------------
+    // for checking
+    printf("\n\nSUM OF CROSS PRODUCTS:");
+    for (int i=0; i<n; i++) {
+        printf("\n%.2f", sum_cross_product[i]);
+    }
+    printf("\n");
+    // --------------------------------------------------------------------------------------------------
+
+    // ==================================================================================================
+    /*
+        Cleanup
+    */
+   // ==================================================================================================
+    // deallocating memory
+    free(sum_X);
+    free(sum_X_squared);
+    free(sum_cross_product);
+
+    return r;
+}
+
+
+// ======================================================================================================
 /*
     Start of the main program
 */
@@ -73,7 +212,11 @@ int main() {
 
     // creating a 10x10 matrix
     n = 10;
-    double mat[n*n];
+    double *mat = (double*)malloc(n * n * sizeof(double));
+    if (mat == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    }
 
     // test case (provided in the lab handout)
     double weights[] = {3.63, 3.02, 3.82, 3.42, 3.59, 2.87, 3.03, 3.46, 3.36, 3.3};
@@ -94,20 +237,17 @@ int main() {
 		}
 	}
 
+    pearson_cor(mat, lengths, n, n);
+
+    // free the matrix to avoid memory leaks
+    free(mat);
+
     // ==================================================================================================
     
     /*
         creating an nxn double matrix
     */
     // double mat[n*n];
-
-
-
-    
-
-
-
-
 
     
 
