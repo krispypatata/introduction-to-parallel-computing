@@ -9,7 +9,7 @@
 		This is a simple program that computes the Pearson Correlation Coefficient of a matrix and a vector.
 */
 
-
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     int n = nCol;
 
     // vector for the Pearson Correlation coefficients
-    double *r = (double*) malloc(n * sizeof(double));
+    double *v = (double*) malloc(n * sizeof(double));
 
     // ==================================================================================================
     /* 
@@ -67,7 +67,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     printf("\n%.2f\n", sum_y);
     
     printf("\nSUM OF X:");
-    for (int i=0; i<m; i++) {
+    for (int i=0; i<n; i++) {
         printf("\n%.2f", sum_X[i]);
     }
     printf("\n");
@@ -138,6 +138,28 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     // ==================================================================================================
     /*
+        Step 4: Calculate r
+    */
+    // ==================================================================================================
+    
+
+    for (int i=0; i<n; i++) {
+        double r = 0;
+        r = ( n*sum_cross_product[i] - sum_X[i] * sum_y ) / sqrt( (n*sum_X_squared[1] - sum_X[i]*sum_X[i]) * (n*sum_y_squared - sum_y*sum_y) );
+        v[i] = r;
+    }
+
+    // --------------------------------------------------------------------------------------------------
+    // for checking
+    printf("\n\nPEARSON CORRELATION COEFFICIENTS:");
+    for (int i=0; i<n; i++) {
+        printf("\n%.2f", v[i]);
+    }
+    printf("\n");
+    // --------------------------------------------------------------------------------------------------
+
+    // ==================================================================================================
+    /*
         Cleanup
     */
    // ==================================================================================================
@@ -146,7 +168,7 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     free(sum_X_squared);
     free(sum_cross_product);
 
-    return r;
+    return v;
 }
 
 
