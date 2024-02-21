@@ -122,13 +122,13 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\nSUM OF X:\n");
-    printVector(sum_X, n, 0);
+    // printf("\nSUM OF X:\n");
+    // printVector(sum_X, n, 0);
 
-    printf("\n\nSUM OF Y:");
-    printf("\n%.2f\n", sum_y);
+    // printf("\n\nSUM OF Y:");
+    // printf("\n%.2f\n", sum_y);
 
-    printf("\n");
+    // printf("\n");
     // --------------------------------------------------------------------------------------------------
 
     // ==================================================================================================
@@ -157,12 +157,12 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\nSUM OF X SQUARES:\n");
-    printVector(sum_X_squared, n, 0);
+    // printf("\nSUM OF X SQUARES:\n");
+    // printVector(sum_X_squared, n, 0);
     
-    printf("\n\nSUM OF Y SQUARES:");
-    printf("\n%.0f\n", sum_y_squared);
-    printf("\n");
+    // printf("\n\nSUM OF Y SQUARES:");
+    // printf("\n%.0f\n", sum_y_squared);
+    // printf("\n");
 
     // --------------------------------------------------------------------------------------------------
 
@@ -186,9 +186,9 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\n\nSUM OF CROSS PRODUCTS:\n");
-    printVector(sum_cross_product, n, 0);
-    printf("\n");
+    // printf("\n\nSUM OF CROSS PRODUCTS:\n");
+    // printVector(sum_cross_product, n, 0);
+    // printf("\n");
     // --------------------------------------------------------------------------------------------------
 
     // ==================================================================================================
@@ -206,9 +206,9 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\n\nPEARSON CORRELATION COEFFICIENTS:\n");
-    printVector(v, n, 4);
-    printf("\n");
+    // printf("\n\nPEARSON CORRELATION COEFFICIENTS:\n");
+    // printVector(v, n, 4);
+    // printf("\n");
     // --------------------------------------------------------------------------------------------------
 
     // ==================================================================================================
@@ -251,7 +251,7 @@ void testAlgorithm () {
 	}
 
     // for checking (printing)
-    printMatrix(mat, n, 2);
+    // printMatrix(mat, n, 2);
 
     // measure execution time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
@@ -405,11 +405,11 @@ int main() {
     }
 
     // for checking (printing)
-    printf("\nVector:");
-    printVector(vector, n, 0);
-    printf("\n");
+    // printf("\nVector:");
+    // printVector(vector, n, 0);
+    // printf("\n");
     
-    printMatrix(mat, n, 0);
+    // printMatrix(mat, n, 0);
 
     // measure execution time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
