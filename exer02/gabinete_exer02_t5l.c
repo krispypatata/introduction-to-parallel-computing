@@ -2,11 +2,11 @@
 	Author: Gabinete, Keith Ginoel S.
 	Section: CMSC 180 - T-5L
 
-    Lab Exercise 01
-    Date Created: February 18, 2024
+    Lab Exercise 02
+    Date Created: February 05, 2024
 
 	Program Description: 
-		This is a simple program that computes the Pearson Correlation Coefficient of a matrix and a vector.
+		This is a simple program that computes the Pearson Correlation Coefficient of a matrix and a vector using multi-threading.
 */
 
 #include <ctype.h>
@@ -19,6 +19,10 @@
 #include <time.h>
 
 
+// ======================================================================================================
+/*
+    a structure for passing arguments in multi-threading function execution
+*/
 typedef struct ARG{
     double **matX;
     double *vectorY;
@@ -27,6 +31,7 @@ typedef struct ARG{
 	int nCol;
     double *correlationCoefficients;
 }args;
+
 
 // ======================================================================================================
 /*
@@ -238,12 +243,13 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
     perform pearson correlation in a given submatrix
 */
 void *performPearsonCorrelation(void *arguments){
+    // for extracting the passed arguments
 	args * temp;
 
     // typecast back to args data type
 	temp = (args *) arguments;
 
-    double **submatrix = temp->matX; // Submatrix assigned to this thread
+    double **submatrix = temp->matX; // submatrix assigned to this thread
     double *vectorY = temp->vectorY;
     int startingColumn = temp->startingColumn;
     int nRow = temp->nRow;
@@ -255,14 +261,15 @@ void *performPearsonCorrelation(void *arguments){
     // printf("\nresult: %d", *result);
     // printf("\n");
     
-    // Copy computed correlations to the shared array
+    // copy computed correlations to the shared array
     for (int i = 0; i < nCol; i++) {
         temp->correlationCoefficients[startingColumn + i] = correlations[i];
     }
 
-    free(correlations); // Free memory allocated in pearson_cor function
+    // deallocate memory used
+    free(correlations); 
 
-    // return the final sum of the products
+    // exit the thread function
 	pthread_exit(NULL);
 }
 
@@ -405,28 +412,25 @@ int askIntInput(const char *prompt) {
 }
 
 
-
-
-
-
 // ======================================================================================================
 /*
     Start of the main program
 */
-// int main() {
-//     testAlgorithm();
-//     return 0;
-// }
 int main() {
+    // ==================================================================================================
+    /*
+        Testing the algorithm by using the test cases provided in the lab handout
+    */
+    // testAlgorithm();
+    // ==================================================================================================
+    
     // for asking inputs from the user
     int n, t;
-
-    // testAlgorithm();
-
 
     // seed the random number generator
     // makes sure that random numbers are actually generated every time this program is executed
     srand(time(NULL)); 
+
 
     // ==================================================================================================
     /*
@@ -435,20 +439,13 @@ int main() {
     */
     n = askIntInput("Please enter the size of the square matrix: ");
     t = askIntInput("Please enter the number of threads to be created: ");
-    // show the entered value of n
+
+    // show the entered value of n and t
     printf("\n==============================================");
     printf("\nSize of the Matrix (n): %d", n);
     printf("\nNumber of threads  (t): %d", t);
     printf("\n==============================================\n");
 
-    
-
-    // ==================================================================================================
-    /*
-        Testing the algorithm by using the test cases provided in the lab handout
-    */
-    // ==================================================================================================
-    // testAlgorithm();
 
     // ==================================================================================================
     /*
@@ -459,6 +456,7 @@ int main() {
     for (int i = 0; i < n; i++) {
         mat[i] = (double *)malloc(n * sizeof(double));
     }
+
 
     // ==================================================================================================
     /*
@@ -479,6 +477,7 @@ int main() {
         vector[i] = generateNonZeroInteger();
     }
 
+
     // ----------------------------------------------------------------------------------------------------
     // for checking (printing)
     // printf("\nVector:");
@@ -486,6 +485,7 @@ int main() {
     // printf("\n");
     // printMatrix(mat, n, n, 0);
     // ----------------------------------------------------------------------------------------------------
+
 
     // allocate memory for correlation coefficients array
     double *correlationCoefficients = (double *)malloc(n * sizeof(double));
@@ -498,6 +498,9 @@ int main() {
 
     // calculate the number of columns per thread
     int nColPerThread = n / t;
+
+    // calculate the remaining columns if n is not divisible by t
+    int remainingColumns = n % t;
 
     // perform pearson correlation
     // allocate memory for the arguments needed in a function call
@@ -512,6 +515,7 @@ int main() {
     double time_spent;
     clock_gettime(CLOCK_MONOTONIC, &begin);
 
+    // perform the algorithm for Pearson Correlation Coefficient using multi-threading
     for (int i = 0; i < t; i++) {
         // initialize the members of the arguments structure
         arguments[i].matX = mat;
@@ -521,31 +525,31 @@ int main() {
         arguments[i].startingColumn = i*nColPerThread;
         arguments[i].correlationCoefficients = correlationCoefficients;
 
-        // arguments->returnedV
+        // assign the remaining columns (if n isn't divisible by t) to the last thread
+        if (i == t - 1) {
+            arguments[i].nCol = nColPerThread + remainingColumns;
+        } else {
+            arguments[i].nCol = nColPerThread;
+        }
 
-        // create a thread for multiplying a certain row of matrix A and a certain column of matrix B
+        // create a thread for computing the Pearson correlation Coefficients of certain columns in the given matrix
         pthread_create(&tid[i], NULL, performPearsonCorrelation, (void *) &arguments[i]);
     }
 
 
     // ========================================================================================================================
     /*
-            join your threads here
+        Join threads
     */
     // ========================================================================================================================
-    // Join threads
     for (int i = 0; i < t; i++) {
         pthread_join(tid[i], NULL);
     }
 
     // calculate the execution time of the algorithm
-    // clock_t end = clock();
-    // double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-
     clock_gettime(CLOCK_MONOTONIC, &end);
-
     time_spent = (end.tv_sec - begin.tv_sec) + (end.tv_nsec - begin.tv_nsec) / 1e9;
-    
+
     // display the execution time
     printf("\nExecution time: %fs\n", time_spent);
 
@@ -558,7 +562,6 @@ int main() {
     free(correlationCoefficients);
     free(tid);
     free(arguments);
-
     
     return 0;
 }
