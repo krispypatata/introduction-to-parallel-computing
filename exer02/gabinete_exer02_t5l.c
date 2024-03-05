@@ -94,7 +94,10 @@ void printVector(double vector[], int n, int nDecimal) {
         vector v (pearson correlation coefficients)
 */
 double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
+    // for checking (submatrix)
     // printMatrix(mat, nRow, nCol, 2);
+
+    // for code simplicity/clarity
     double **X = mat;
     double *y = vector;
     int m = nRow;
@@ -108,8 +111,8 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
         Step 1: Calculate the sums of x and y
     */
     // ==================================================================================================
-    // double *sum_X = (double *) malloc (n * sizeof(double));
-    double sum_X[n];
+    double *sum_X = (double *) malloc (n * sizeof(double));
+    // double sum_X[n]; // alternative (if encountering segfault)
     double sum_y = 0;
 
     // traverse through the columns of matrix x
@@ -144,9 +147,8 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
         Step 2: Calculate x2 and y2 and their sums
     */
     // ==================================================================================================
-    
-    // double *sum_X_squared = (double *) malloc (n * sizeof(double));
-    double sum_X_squared[n];
+    double *sum_X_squared = (double *) malloc (n * sizeof(double));
+    // double sum_X_squared[n];  // alternative (if encountering segfault)
     double sum_y_squared = 0;
 
     // traverse through the columns of matrix x, square all elements and get their sum
@@ -181,8 +183,8 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
         Step 3: Calculate the cross product and its sum
     */
     // ==================================================================================================
-    // double *sum_cross_product = (double *) malloc (n * sizeof(double));
-    double sum_cross_product[n];
+    double *sum_cross_product = (double *) malloc (n * sizeof(double));
+    // double sum_cross_product[n];  // alternative (if encountering segfault)
 
     // traverse through the columns of matrix x, compute for the cross product of each column and vector y
     for (int j=0; j<n; j++) {
@@ -207,8 +209,6 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
         Step 4: Calculate r
     */
     // ==================================================================================================
-    
-
     for (int i=0; i<n; i++) {
         double r = 0;
         r = ( m*sum_cross_product[i] - sum_X[i] * sum_y ) / sqrt( (m*sum_X_squared[i] - sum_X[i]*sum_X[i]) * (m*sum_y_squared - sum_y*sum_y) );
@@ -228,11 +228,11 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
     /*
         Cleanup
     */
-   // ==================================================================================================
+    // ==================================================================================================
     // deallocating memory
-    // free(sum_X);
-    // free(sum_X_squared);
-    // free(sum_cross_product);
+    free(sum_X);
+    free(sum_X_squared);
+    free(sum_cross_product);
 
     return v;
 }
