@@ -299,6 +299,7 @@ int generateNonZeroInteger() {
     Start of the main program
 */
 int main() {
+    testAlgorithm();
     // for asking input from the user
     char fgetsInput[128], fgetsInputTrimmed[128];
     char dump[128];

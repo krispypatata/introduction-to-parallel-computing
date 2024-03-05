@@ -19,11 +19,20 @@
 #include <time.h>
 
 
+typedef struct ARG{
+    double **matX;
+    double *vectorY;
+    int startingColumn;
+	int nRow;
+	int nCol;
+    double *correlationCoefficients;
+}args;
+
 // ======================================================================================================
 /*
     a function for printing a square matrix that is made with 1d array
 */
-void printMatrix(double mat[], int n, int nDecimal) {
+void printMatrix(double **mat, int m, int n, int nDecimal) {
     // total field width including decimal point and sign
     int fieldWidth = 8; 
 
@@ -31,21 +40,12 @@ void printMatrix(double mat[], int n, int nDecimal) {
     int precision = nDecimal;  
 
     // traversing through the elements of the matrix
-    for (int row=0; row<n; row++) {
+    for (int row=0; row<m; row++) {
         for (int col=0; col<n; col++) {
-            printf("%*.*f ", fieldWidth, precision, mat[row*n+col]);
+            printf("%*.*f ", fieldWidth, precision, mat[row][col]);
         }
         printf("\n");
     }
-
-    // another format:
-    // for (int row=0; row<n; row++){
-	// 	for (int col=0; col<n; col++){
-    //         printf("%5d ", mat[row*n+col]);
-	// 		// printf("[%d]:\t%.2f\t", row*n+col, mat[row*n+col]);
-    //         if (col==n-1) printf("\n");
-	// 	}
-	// }
 }
 
 
@@ -88,8 +88,9 @@ void printVector(double vector[], int n, int nDecimal) {
     returns:
         vector v (pearson correlation coefficients)
 */
-double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
-    double *X = mat;
+double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
+    // printMatrix(mat, nRow, nCol, 2);
+    double **X = mat;
     double *y = vector;
     int m = nRow;
     int n = nCol;
@@ -102,18 +103,19 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
         Step 1: Calculate the sums of x and y
     */
     // ==================================================================================================
-    double *sum_X = (double *) malloc (n * sizeof(double));
+    // double *sum_X = (double *) malloc (n * sizeof(double));
+    double sum_X[n];
     double sum_y = 0;
 
     // traverse through the columns of matrix x
-    for (int i=0; i<m; i++) {
+    for (int j=0; j<n; j++) {
         double sum_col = 0;
-        for (int j=0; j<n; j++) {
-            sum_col += X[j*n+i];
+        for (int i=0; i<m; i++) {
+            sum_col += X[i][j];
         }
 
         // add the computed sum of the column to sum_X
-        sum_X[i] = sum_col;
+        sum_X[j] = sum_col;
     }
 
     // traverse through the elements of vector y
@@ -123,32 +125,34 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\nSUM OF X:\n");
-    printVector(sum_X, n, 0);
+    // printf("\nSUM OF X:\n");
+    // printVector(sum_X, n, 0);
 
-    printf("\n\nSUM OF Y:");
-    printf("\n%.2f\n", sum_y);
+    // printf("\n\nSUM OF Y:");
+    // printf("\n%.2f\n", sum_y);
 
-    printf("\n");
+    // printf("\n");
     // --------------------------------------------------------------------------------------------------
-
+    
     // ==================================================================================================
     /*
         Step 2: Calculate x2 and y2 and their sums
     */
     // ==================================================================================================
-    double *sum_X_squared = (double *) malloc (n * sizeof(double));
+    
+    // double *sum_X_squared = (double *) malloc (n * sizeof(double));
+    double sum_X_squared[n];
     double sum_y_squared = 0;
 
     // traverse through the columns of matrix x, square all elements and get their sum
-    for (int i=0; i<m; i++) {
+    for (int j=0; j<n; j++) {
         double sum_col_squared = 0;
-        for (int j=0; j<n; j++) {
-            sum_col_squared += X[j*n+i]*X[j*n+i];
+        for (int i=0; i<m; i++) {
+            sum_col_squared += X[i][j]*X[i][j];
         }
 
         // add the computed sum of the column to sum_X_squared
-        sum_X_squared[i] = sum_col_squared;
+        sum_X_squared[j] = sum_col_squared;
     }
 
     // traverse through the elements of vector y, square all elements and get their sum
@@ -158,12 +162,12 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\nSUM OF X SQUARES:\n");
-    printVector(sum_X_squared, n, 0);
+    // printf("\nSUM OF X SQUARES:\n");
+    // printVector(sum_X_squared, n, 0);
     
-    printf("\n\nSUM OF Y SQUARES:");
-    printf("\n%.0f\n", sum_y_squared);
-    printf("\n");
+    // printf("\n\nSUM OF Y SQUARES:");
+    // printf("\n%.0f\n", sum_y_squared);
+    // printf("\n");
 
     // --------------------------------------------------------------------------------------------------
 
@@ -172,24 +176,25 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
         Step 3: Calculate the cross product and its sum
     */
     // ==================================================================================================
-    double *sum_cross_product = (double *) malloc (n * sizeof(double));
+    // double *sum_cross_product = (double *) malloc (n * sizeof(double));
+    double sum_cross_product[n];
 
     // traverse through the columns of matrix x, compute for the cross product of each column and vector y
-    for (int i=0; i<m; i++) {
+    for (int j=0; j<n; j++) {
         double sum_col_cross_product = 0;
-        for (int j=0; j<n; j++) {
-            sum_col_cross_product += X[j*n+i] * y[j];
+        for (int i=0; i<m; i++) {
+            sum_col_cross_product += X[i][j] * y[i];
         }
 
         // add the computed sum of the column to sum_X_squared
-        sum_cross_product[i] = sum_col_cross_product;
+        sum_cross_product[j] = sum_col_cross_product;
     }
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\n\nSUM OF CROSS PRODUCTS:\n");
-    printVector(sum_cross_product, n, 0);
-    printf("\n");
+    // printf("\n\nSUM OF CROSS PRODUCTS:\n");
+    // printVector(sum_cross_product, n, 0);
+    // printf("\n");
     // --------------------------------------------------------------------------------------------------
 
     // ==================================================================================================
@@ -201,15 +206,17 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 
     for (int i=0; i<n; i++) {
         double r = 0;
-        r = ( n*sum_cross_product[i] - sum_X[i] * sum_y ) / sqrt( (n*sum_X_squared[i] - sum_X[i]*sum_X[i]) * (n*sum_y_squared - sum_y*sum_y) );
+        r = ( m*sum_cross_product[i] - sum_X[i] * sum_y ) / sqrt( (m*sum_X_squared[i] - sum_X[i]*sum_X[i]) * (m*sum_y_squared - sum_y*sum_y) );
         v[i] = r;
     }
 
     // --------------------------------------------------------------------------------------------------
     // for checking
-    printf("\n\nPEARSON CORRELATION COEFFICIENTS:\n");
-    printVector(v, n, 4);
-    printf("\n");
+    // printf("\n\nPEARSON CORRELATION COEFFICIENTS:\n");
+    // printVector(v, n, 4);
+    // printf("===========================================================================\n");
+    // printf("===========================================================================\n");
+    // printf("===========================================================================\n");
     // --------------------------------------------------------------------------------------------------
 
     // ==================================================================================================
@@ -218,11 +225,45 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
     */
    // ==================================================================================================
     // deallocating memory
-    free(sum_X);
-    free(sum_X_squared);
-    free(sum_cross_product);
+    // free(sum_X);
+    // free(sum_X_squared);
+    // free(sum_cross_product);
 
     return v;
+}
+
+
+// ======================================================================================================
+/*
+    perform pearson correlation in a given submatrix
+*/
+void *performPearsonCorrelation(void *arguments){
+	args * temp;
+
+    // typecast back to args data type
+	temp = (args *) arguments;
+
+    double **submatrix = temp->matX; // Submatrix assigned to this thread
+    double *vectorY = temp->vectorY;
+    int startingColumn = temp->startingColumn;
+    int nRow = temp->nRow;
+    int nCol = temp->nCol;
+
+    // perform pearson correlation on the given submatrix
+    double *correlations = pearson_cor(submatrix, vectorY, nRow, nCol);
+
+    // printf("\nresult: %d", *result);
+    // printf("\n");
+    
+    // Copy computed correlations to the shared array
+    for (int i = 0; i < nCol; i++) {
+        temp->correlationCoefficients[startingColumn + i] = correlations[i];
+    }
+
+    free(correlations); // Free memory allocated in pearson_cor function
+
+    // return the final sum of the products
+	pthread_exit(NULL);
 }
 
 
@@ -234,7 +275,13 @@ double* pearson_cor (double *mat, double *vector, int nRow, int nCol) {
 void testAlgorithm () {
     // creating a 10x10 matrix
     int n = 10;
-    double *mat = (double*)malloc(n * n * sizeof(double));
+    // double *mat = (double*)malloc(n * 3 * sizeof(double));
+    double **mat = (double **)malloc(n * sizeof(double *));
+
+    for (int i = 0; i < n; i++) {
+        mat[i] = (double *)malloc(n * sizeof(double));
+    }
+
     if (mat == NULL) {
         printf("Memory allocation failed.\n");
         exit(1);
@@ -247,19 +294,19 @@ void testAlgorithm () {
     // initializing each column of the matrix with the values from the weights vector
     for (int row=0; row<n; row++){
 		for (int col=0; col<n; col++){
-            mat[col*n+row] = weights[col];
+            mat[col][row] = weights[col];
 		}
 	}
 
     // for checking (printing)
-    printMatrix(mat, n, 2);
+    printMatrix(mat, n, n, 2);
 
     // measure execution time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
     clock_t begin = clock();
 
     // compute for the Pearson Correlation Coefficient of the matrix and the given vector
-    pearson_cor(mat, lengths, n, n);
+    pearson_cor(mat, lengths, n, 3);
 
     // calculate the execution time of the algorithm
     clock_t end = clock();
@@ -269,6 +316,9 @@ void testAlgorithm () {
     printf("\nExecution time: %fs\n", time_spent);
 
     // free the matrix to avoid memory leaks
+    for (int i = 0; i < n; i++) {
+        free(mat[i]);
+    }
     free(mat);
 
     // force exit the program
@@ -303,7 +353,7 @@ int askIntInput(const char *prompt) {
     char fgetsInput[128], fgetsInputTrimmed[128];
     char dump[128];
     int value;
-
+    
     // for the while loop
     bool isInvalidInput = true;
 
@@ -355,54 +405,24 @@ int askIntInput(const char *prompt) {
 }
 
 
-// Define a structure to hold thread data
-struct ThreadData {
-    double *mat;
-    double *vector;
-    int nRow;
-    int nCol;
-    int startCol; // starting column index of the submatrix
-    int endCol;   // ending column index of the submatrix
-    double *result; // array to store the computed correlation coefficients
-};
 
-// Function for each thread to compute Pearson correlation coefficient
-void *computePearson(void *arg) {
-    struct ThreadData *data = (struct ThreadData *)arg;
-    double *mat = data->mat;
-    double *vector = data->vector;
-    int nRow = data->nRow;
-    int nCol = data->nCol;
-    int startCol = data->startCol;
-    int endCol = data->endCol;
 
-    // Allocate memory for the result array
-    double *result = (double*)malloc((endCol - startCol) * sizeof(double));
-
-    // Compute Pearson correlation coefficient for the assigned submatrix
-    for (int col = startCol; col < endCol; col++) {
-        // Extract the submatrix
-        double *submatrix = mat + col * nRow;
-
-        // Compute Pearson correlation coefficient for this submatrix column
-        result[col - startCol] = pearson_cor(submatrix, vector, nRow, 1)[0];
-    }
-
-    // Assign the result array to the struct member
-    data->result = result;
-
-    // Free the result array before exiting the thread
-    pthread_exit(NULL);
-}
 
 
 // ======================================================================================================
 /*
     Start of the main program
 */
+// int main() {
+//     testAlgorithm();
+//     return 0;
+// }
 int main() {
     // for asking inputs from the user
     int n, t;
+
+    // testAlgorithm();
+
 
     // seed the random number generator
     // makes sure that random numbers are actually generated every time this program is executed
@@ -435,7 +455,10 @@ int main() {
         Creating an nxn double matrix
     */
     // ==================================================================================================
-    double *mat = (double *) malloc(n * n * sizeof(double));
+    double **mat = (double **) malloc(n * sizeof(double));
+    for (int i = 0; i < n; i++) {
+        mat[i] = (double *)malloc(n * sizeof(double));
+    }
 
     // ==================================================================================================
     /*
@@ -443,15 +466,10 @@ int main() {
     */
     // ==================================================================================================
     // traversing through the elements of the matrix
-    for (int row=0; row<n; row++) {
-        for (int col=0; col<n; col++) {
+    for (int col=0; col<n; col++) {
+        for (int row=0; row<n; row++) {
             // generate a random non-zero integer and put it in the currently selected cell
-            mat[row*n+col] = generateNonZeroInteger();
-
-            // mat[row*n+col] = (row+1)*100;
-            // if (row==n-1){
-            //     mat[row*n+col] = 100*col;
-            // }
+            mat[row][col] = generateNonZeroInteger();
         }
     }
 
@@ -459,52 +477,89 @@ int main() {
     for (int i=0; i<n; i++) {
         // generate a random non-zero integer and put it in the currently selected cell
         vector[i] = generateNonZeroInteger();
-
-        // vector[i] = i+1;
     }
 
+    // ----------------------------------------------------------------------------------------------------
     // for checking (printing)
-    printf("\nVector:");
-    printVector(vector, n, 0);
-    printf("\n");
-    
-    printMatrix(mat, n, 0);
+    // printf("\nVector:");
+    // printVector(vector, n, 0);
+    // printf("\n");
+    // printMatrix(mat, n, n, 0);
+    // ----------------------------------------------------------------------------------------------------
 
-    // exit(0);
+    // allocate memory for correlation coefficients array
+    double *correlationCoefficients = (double *)malloc(n * sizeof(double));
+
+    // array to hold thread IDs
+    pthread_t *tid;
+
+    // create an array for the t threads needed for Pearson Correlation Coefficient computation
+    tid = (pthread_t *) malloc(t* sizeof(pthread_t) );
+
+    // calculate the number of columns per thread
+    int nColPerThread = n / t;
+
+    // perform pearson correlation
+    // allocate memory for the arguments needed in a function call
+    // dynamic number of arguments since the number of threads is unknown;
+    args *arguments;    
+    arguments = (args *) malloc(t*sizeof(args));
+
     // measure execution time
-
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
-    clock_t begin = clock();
+    // clock_t begin = clock();
+    struct timespec begin, end;
+    double time_spent;
+    clock_gettime(CLOCK_MONOTONIC, &begin);
+
+    for (int i = 0; i < t; i++) {
+        // initialize the members of the arguments structure
+        arguments[i].matX = mat;
+        arguments[i].vectorY = vector;
+        arguments[i].nRow = n;
+        arguments[i].nCol = nColPerThread;  // initialize to zero (Since we are just about to solve the product in this multiplication)
+        arguments[i].startingColumn = i*nColPerThread;
+        arguments[i].correlationCoefficients = correlationCoefficients;
+
+        // arguments->returnedV
+
+        // create a thread for multiplying a certain row of matrix A and a certain column of matrix B
+        pthread_create(&tid[i], NULL, performPearsonCorrelation, (void *) &arguments[i]);
+    }
 
 
-    // compute for the Pearson Correlation Coefficient of the matrix and the given vector
-    // double *pearson_correlation_coefficients = pearson_cor(mat, vector, n, n);
-
-    // Divide the matrix columns among threads
-    int colsPerThread = n / t;
-
-    // Array to hold thread IDs
-    pthread_t threads[t];
-
-    // Array to hold the computed correlation coefficients
-    double *pearson_correlation_coefficients = (double *) malloc(n * sizeof(double));;
-
-
-
+    // ========================================================================================================================
+    /*
+            join your threads here
+    */
+    // ========================================================================================================================
+    // Join threads
+    for (int i = 0; i < t; i++) {
+        pthread_join(tid[i], NULL);
+    }
 
     // calculate the execution time of the algorithm
-    clock_t end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    // clock_t end = clock();
+    // double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    time_spent = (end.tv_sec - begin.tv_sec) + (end.tv_nsec - begin.tv_nsec) / 1e9;
+    
     // display the execution time
     printf("\nExecution time: %fs\n", time_spent);
 
     // free the matrix to avoid memory leaks
+    for (int i = 0; i < n; i++) {
+        free(mat[i]);
+    }
     free(mat);
     free(vector);
-    free(pearson_correlation_coefficients);
+    free(correlationCoefficients);
+    free(tid);
+    free(arguments);
 
-
+    
     return 0;
 }
 
