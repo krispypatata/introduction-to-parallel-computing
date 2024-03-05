@@ -308,19 +308,19 @@ void testAlgorithm () {
     // for checking (printing)
     printMatrix(mat, n, n, 2);
 
-    // measure execution time
+    // measure elapsed/execution time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
     clock_t begin = clock();
 
     // compute for the Pearson Correlation Coefficient of the matrix and the given vector
     pearson_cor(mat, lengths, n, 3);
 
-    // calculate the execution time of the algorithm
+    // calculate the elapsed time time of the algorithm
     clock_t end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 
-    // display the execution time
-    printf("\nExecution time: %fs\n", time_spent);
+    // display the elapsed/execution time
+    printf("\nElapsed time: %f seconds\n", time_spent);
 
     // free the matrix to avoid memory leaks
     for (int i = 0; i < n; i++) {
@@ -508,7 +508,7 @@ int main() {
     args *arguments;    
     arguments = (args *) malloc(t*sizeof(args));
 
-    // measure execution time
+    // measure execution/elapsed time
     // <https://stackoverflow.com/questions/5248915/execution-time-of-c-program>
     // clock_t begin = clock();
     struct timespec begin, end;
@@ -546,12 +546,12 @@ int main() {
         pthread_join(tid[i], NULL);
     }
 
-    // calculate the execution time of the algorithm
+    // calculate the elapsed/execution time of the algorithm
     clock_gettime(CLOCK_MONOTONIC, &end);
     time_spent = (end.tv_sec - begin.tv_sec) + (end.tv_nsec - begin.tv_nsec) / 1e9;
 
-    // display the execution time
-    printf("\nExecution time: %fs\n", time_spent);
+    // display the elapsed/execution time
+    printf("\nElapsed time: %f seconds\n", time_spent);
 
     // free the matrix to avoid memory leaks
     for (int i = 0; i < n; i++) {
