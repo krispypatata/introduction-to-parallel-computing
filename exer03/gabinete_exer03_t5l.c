@@ -11,7 +11,7 @@
 
 #define _GNU_SOURCE
 #include <sched.h>   //cpu_set_t , CPU_SET
-#include <pthread.h> //pthread_t
+#include <unistd.h>
 #include <stdio.h>
 #include <err.h>
 #include <errno.h>
@@ -249,7 +249,7 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
     return v;
 }
 
-#define NUM_CORES 3
+#define NUM_CORES 7
 // the cpu we want to use
 int cpu = 0;
 // ======================================================================================================
@@ -578,9 +578,10 @@ int main() {
     double time_spent;
     clock_gettime(CLOCK_MONOTONIC, &begin);
 
-
+    long num_cores = sysconf(_SC_NPROCESSORS_CONF);
+    printf("Number of CPU cores: %ld\n", num_cores);
     // Create an array for the CPU cores to be used by threads
-    int cpu_cores[] = {0, 1, 2}; // Assuming you have three cores
+    int cpu_cores[] = {0, 1, 2,3,4,5,6}; // Assuming you have 7 cores
 
     // perform the algorithm for Pearson Correlation Coefficient using multi-threading
     for (int i = 0; i < t; i++) {
