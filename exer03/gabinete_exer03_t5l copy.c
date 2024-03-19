@@ -43,6 +43,7 @@ typedef struct ARG{
 	int nCol;
     double *correlationCoefficients;
     int threadNumber;
+    pthread_t threadID;
 }args;
 
 
@@ -250,14 +251,17 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
     return v;
 }
 
-// number of cores we want to use
 #define NUM_CORES 7
-int cpu_cores[] = {0, 1, 2, 3, 4, 5, 6}; // Assuming you have 7 cores
+// the cpu we want to use
+int cpu = 0;
 // ======================================================================================================
 /*
     perform pearson correlation in a given submatrix
 */
 void *performPearsonCorrelation(void *arguments){
+
+
+
     // for extracting the passed arguments
 	args * temp;
 
@@ -269,29 +273,29 @@ void *performPearsonCorrelation(void *arguments){
     int startingColumn = temp->startingColumn;
     int nRow = temp->nRow;
     int nCol = temp->nCol;
-    int threadNumber = temp->threadNumber;
+
+
 
     // ***********************************************************************************************
     // https://stackoverflow.com/questions/1407786/how-to-set-cpu-affinity-of-a-particular-pthread
-    
-    // set CPU affinity for the current thread
+    int tNumber = temp->threadNumber;
+    pthread_t tid = temp->threadID;
+
+    int cpu_cores[] = {0, 1, 2,3,4,5,6}; // Assuming you have 7 cores
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET(cpu_cores[threadNumber % NUM_CORES], &cpuset);
-    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    CPU_SET(cpu_cores[tNumber % NUM_CORES], &cpuset);
 
-    // for checking
-    // get CPU affinity for the thread
-    int result = pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-    
-    // for handling an error (if needed)
+    pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset);
+
+    // Get CPU affinity for the thread
+    int result = pthread_getaffinity_np(tid, sizeof(cpu_set_t), &cpuset);
     if (result != 0) {
         perror("pthread_getaffinity_np");
-        
+        // Handle error if needed
     }
 
-    // display the affinity between a thread and the cpu(s)
-    printf("Thread %d is affined to core(s): ", threadNumber);
+    printf("Thread %d is affined to core(s): ", tNumber);
     for (int j = 0; j < CPU_SETSIZE; j++) {
         if (CPU_ISSET(j, &cpuset)) {
             printf("%d ", j);
@@ -562,10 +566,10 @@ int main() {
     double time_spent;
     clock_gettime(CLOCK_MONOTONIC, &begin);
 
-    // for checking
-    // display the number of cores the current machine have
     long num_cores = sysconf(_SC_NPROCESSORS_CONF);
     printf("Number of CPU cores: %ld\n", num_cores);
+    // Create an array for the CPU cores to be used by threads
+    // int cpu_cores[] = {0, 1, 2,3,4,5,6}; // Assuming you have 7 cores
 
     // perform the algorithm for Pearson Correlation Coefficient using multi-threading
     for (int i = 0; i < t; i++) {
@@ -577,6 +581,7 @@ int main() {
         arguments[i].startingColumn = i*nColPerThread;
         arguments[i].correlationCoefficients = correlationCoefficients;
         arguments[i].threadNumber = i;
+        arguments[i].threadID = tid[i];
 
         // assign the remaining columns (if n isn't divisible by t) to the last thread
         if (i == t - 1) {
@@ -585,8 +590,32 @@ int main() {
             arguments[i].nCol = nColPerThread;
         }
 
+        // // Set CPU affinity for the thread
+        // cpu_set_t cpuset;
+        // CPU_ZERO(&cpuset);
+        // CPU_SET(cpu_cores[i % NUM_CORES], &cpuset);
+
         // create a thread for computing the Pearson correlation Coefficients of certain columns in the given matrix
         pthread_create(&tid[i], NULL, performPearsonCorrelation, (void *) &arguments[i]);
+        // pthread_setaffinity_np(tid[i], sizeof(cpu_set_t), &cpuset);
+
+        // // Get CPU affinity for the thread
+        // cpu_set_t cpuset;
+        // int result = pthread_getaffinity_np(tid[i], sizeof(cpu_set_t), &cpuset);
+        // if (result != 0) {
+        //     perror("pthread_getaffinity_np");
+        //     // Handle error if needed
+        // }
+
+        // printf("Thread %d is affined to core(s): ", i);
+        // for (int j = 0; j < CPU_SETSIZE; j++) {
+        //     if (CPU_ISSET(j, &cpuset)) {
+        //         printf("%d ", j);
+        //     }
+        // }
+        // printf("\n");
+
+
     }
 
 
