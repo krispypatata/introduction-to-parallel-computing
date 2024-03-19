@@ -299,6 +299,14 @@ int generateNonZeroInteger() {
     Start of the main program
 */
 int main() {
+    // ==================================================================================================
+    /*
+        Testing the algorithm by using the test cases provided in the lab handout
+    */
+    // ==================================================================================================
+    // testAlgorithm();
+    // ==================================================================================================
+
     // for asking input from the user
     char fgetsInput[128], fgetsInputTrimmed[128];
     char dump[128];
@@ -364,12 +372,6 @@ int main() {
         // for checking
         // printf("Fecth count: %d\n", fetchCount);
     }
-    // ==================================================================================================
-    /*
-        Testing the algorithm by using the test cases provided in the lab handout
-    */
-    // ==================================================================================================
-    // testAlgorithm();
 
     // ==================================================================================================
     /*
