@@ -637,6 +637,7 @@ int main() {
     free(correlationCoefficients);
     free(tid);
     free(arguments);
+    free(cpu_cores);
     
     return 0;
 }
