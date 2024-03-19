@@ -6,29 +6,22 @@
     Date Created: March 18, 2024
 
 	Program Description: 
-		This is a simple program that computes the Pearson Correlation Coefficient of a matrix and a vector using core-affined multi-threading.
+		This is a simple program that computes the Pearson Correlation Coefficient of a matrix and a vector while
+    utilizing core-affined multi-threading techniques.
 */
 
 #define _GNU_SOURCE
-#include <sched.h>   //cpu_set_t , CPU_SET
-#include <unistd.h>
-#include <stdio.h>
-#include <err.h>
-#include <errno.h>
-
-
 
 #include <ctype.h>
 #include <limits.h>
 #include <math.h>
 #include <pthread.h>
+#include <sched.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
-
-
+#include <unistd.h>
 
 
 // ======================================================================================================
@@ -250,12 +243,13 @@ double* pearson_cor (double **mat, double *vector, int nRow, int nCol) {
     return v;
 }
 
-// number of cores we want to use
-#define NUM_CORES 7
-int cpu_cores[] = {0, 1, 2, 3, 4, 5, 6}; // Assuming you have 7 cores
+
+// for exer3 (core affinity)
+long num_cores; // number of cores we want to use
+int *cpu_cores; // length should be = CPU cores of the machine minus 1
 // ======================================================================================================
 /*
-    perform pearson correlation in a given submatrix
+    a function to perform pearson correlation in a given submatrix
 */
 void *performPearsonCorrelation(void *arguments){
     // for extracting the passed arguments
@@ -271,16 +265,26 @@ void *performPearsonCorrelation(void *arguments){
     int nCol = temp->nCol;
     int threadNumber = temp->threadNumber;
 
-    // ***********************************************************************************************
-    // https://stackoverflow.com/questions/1407786/how-to-set-cpu-affinity-of-a-particular-pthread
+    // ==================================================================================================
+    /*
+        Assigning the current thread to a core
+        
+        Reference: 
+            https://stackoverflow.com/questions/1407786/how-to-set-cpu-affinity-of-a-particular-pthread
+    */
     
     // set CPU affinity for the current thread
+    // current thread = pthread_self()
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET(cpu_cores[threadNumber % NUM_CORES], &cpuset);
+    CPU_SET(cpu_cores[threadNumber % num_cores], &cpuset);  // round-robin
     pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
 
-    // for checking
+    // ==================================================================================================
+    /*
+        For checking
+        -> displaying which core the current thread is assigned to
+    */
     // get CPU affinity for the thread
     int result = pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
     
@@ -291,16 +295,14 @@ void *performPearsonCorrelation(void *arguments){
     }
 
     // display the affinity between a thread and the cpu(s)
-    printf("Thread %d is affined to core(s): ", threadNumber);
+    printf("Thread %d is affined to core: ", threadNumber);
     for (int j = 0; j < CPU_SETSIZE; j++) {
         if (CPU_ISSET(j, &cpuset)) {
             printf("%d ", j);
         }
     }
     printf("\n");
-
-    // ***********************************************************************************************
-
+    // ==================================================================================================
 
     // perform pearson correlation on the given submatrix
     double *correlations = pearson_cor(submatrix, vectorY, nRow, nCol);
@@ -562,10 +564,29 @@ int main() {
     double time_spent;
     clock_gettime(CLOCK_MONOTONIC, &begin);
 
-    // for checking
+
+    // ==================================================================================================
+    /*
+        Determine the number of cores the current machine has (added for exer 3)
+    */
+    // ==================================================================================================
     // display the number of cores the current machine have
-    long num_cores = sysconf(_SC_NPROCESSORS_CONF);
+    num_cores = sysconf(_SC_NPROCESSORS_CONF);
+
+    // --------------------------------------------------------------------------------------------------
+    // for checking
     printf("Number of CPU cores: %ld\n", num_cores);
+    printf("We'll only utilize %ld cores.\n", --num_cores); // decrement num_cores value by 1
+    printf("==============================================\n");
+    // --------------------------------------------------------------------------------------------------
+    // allocate memory for cpu_cores based on the number of CPU cores the current machine has minus 1 (already decremented in '--num_cores')
+    cpu_cores = (int *)malloc(num_cores * sizeof(int));
+
+    // initialize the cpu_cores array
+    for (int i = 0; i < num_cores; i++) {
+        cpu_cores[i] = i;
+    }
+    // ==================================================================================================
 
     // perform the algorithm for Pearson Correlation Coefficient using multi-threading
     for (int i = 0; i < t; i++) {
@@ -604,6 +625,7 @@ int main() {
     time_spent = (end.tv_sec - begin.tv_sec) + (end.tv_nsec - begin.tv_nsec) / 1e9;
 
     // display the elapsed/execution time
+    printf("==============================================\n");
     printf("\nElapsed time: %f seconds\n", time_spent);
 
     // free the matrix to avoid memory leaks
