@@ -501,7 +501,7 @@ int main() {
         Creating an nxn double matrix
     */
     // ==================================================================================================
-    double **mat = (double **) malloc(n * sizeof(double));
+    double **mat = (double **) malloc(n * sizeof(double *));
     for (int i = 0; i < n; i++) {
         mat[i] = (double *)malloc(n * sizeof(double));
     }
