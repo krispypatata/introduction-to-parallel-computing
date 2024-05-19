@@ -289,12 +289,12 @@ int main(int argc, char *argv[])
 
 			puts("Welcome message sent successfully");
 
-			if ((new_socket = accept(master_socket,
-									 (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
-			{
-				perror("accept");
-				exit(EXIT_FAILURE);
-			}
+			// if ((new_socket = accept(master_socket,
+			// 						 (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+			// {
+			// 	perror("accept");
+			// 	exit(EXIT_FAILURE);
+			// }
 
 			// Get the client index
 			int client_index = -1;
@@ -327,6 +327,8 @@ int main(int argc, char *argv[])
 						send(new_socket, &submatrices[submatrixIndex][i][j], sizeof(int), 0);
 					}
 				}
+
+				
 
 				puts("Submatrix sent successfully to the client");
 
