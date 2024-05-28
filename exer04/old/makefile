@@ -61,55 +61,10 @@ tc:
 	gcc -o tcpClient tcpClient.c
 
 s:
-	python3 lab04.py 25000 5000 0
+	python3 lab04.py 10 5000 0
 
 c1:
-	python3 lab04.py 25000 5001 1
+	python3 lab04.py 10 5001 1
 
 c2: 
-	python3 lab04.py 25000 5002 1
-
-c3:
-	python3 lab04.py 10 5003 1
-
-c4:
-	python3 lab04.py 10 5004 1
-
-c5:
-	python3 lab04.py 10 5005 1
-
-c6:
-	python3 lab04.py 10 5006 1
-
-c7:
-	python3 lab04.py 10 5007 1
-
-c8:
-	python3 lab04.py 10 5008 1
-
-c9:
-	python3 lab04.py 10 5009 1
-
-c10:
-	python3 lab04.py 10 5010 1
-
-c11:
-	python3 lab04.py 10 5011 1
-
-c12:
-	python3 lab04.py 10 5012 1
-
-c13:
-	python3 lab04.py 10 5013 1
-
-c14:
-	python3 lab04.py 10 5014 1
-
-c15:
-	python3 lab04.py 10 5015 1
-
-c16:
-	python3 lab04.py 10 5016 1
-
-kill:
-	lsof -i :5000
+	python3 lab04.py 10 5002 1

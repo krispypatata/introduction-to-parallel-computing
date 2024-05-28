@@ -3,7 +3,6 @@ import socket
 import sys
 
 
-
 # =============================================================================
 # function to verify the size of a numpy matrix
 def printMatrixSize(mat):
@@ -44,28 +43,18 @@ def divideMatrixIntoSubmatrices(matrix, t):
         # Update the starting row for the next submatrix
         startRow += numRows
 
-    print("Submatrices generated")
     return submatrices
 
-# # function to generate an nxn square matrix with random positive integers
-# def generateNxNMatrix(n):
-#     # define the maximum integer value for np.int32
-#     maxInt = np.iinfo(np.int32).max
-    
-#     # generate the nxn square matrix with random positive integer values
-#     matrix = np.random.randint(1, maxInt, size=(n, n), dtype=np.int32)
-    
-#     # return the generated matrix
-#     return matrix
-# function to generate an nxn square matrix with random positive integers between 1 and 255
+# function to generate an nxn square matrix with random positive integers
 def generateNxNMatrix(n):
-    # generate the nxn square matrix with random positive integer values between 1 and 255
-    matrix = np.random.randint(1, 256, size=(n, n), dtype=np.uint8)
+    # define the maximum integer value for np.int32
+    maxInt = np.iinfo(np.int32).max
+    
+    # generate the nxn square matrix with random positive integer values
+    matrix = np.random.randint(1, maxInt, size=(n, n), dtype=np.int32)
     
     # return the generated matrix
     return matrix
-
-
 # =============================================================================
 # function to read the configuration file (config.in)
 # The configuration file should have the following format:
@@ -104,7 +93,6 @@ def readArguments():
         print("An error occurred while parsing command-line arguments:", e)
         sys.exit(1)
 
-
 # function to handle logic for the master node
 def handleMasterLogic(n, p, t, slavesInfo):
     # generate an nxn square matrix populated with random positive integers
@@ -125,20 +113,9 @@ def handleMasterLogic(n, p, t, slavesInfo):
             with conn:
                 print('Connected to', addr)
                 data = submatrices[i].tobytes()
-                # Send data in chunks
-                bytes_sent = 0
-                while bytes_sent < len(data):
-                    # chunk = data[bytes_sent:bytes_sent + 4096]  # Chunk size is 4096 bytes
-                    chunk = data[bytes_sent:bytes_sent + 16777216]
-                    # print(len(chunk))
-                    conn.sendall(chunk)
-                    bytes_sent += len(chunk)
-                    print(bytes_sent, 'bytes sent out of', len(data))
-
+                conn.sendall(data)
                 print('Sent submatrix to', addr)
-            
-                # Close the connection after sending all the data
-                conn.close()
+
 
 
 # function to handle logic for the slave node
@@ -150,16 +127,12 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
 
         data = b''
         while True:
-            # chunk = s.recv(4096)  # Receive data in chunks
-            chunk = s.recv(16777216)  # Receive data in chunks 4194304
-            # print(len(chunk))
+            chunk = s.recv(4096)
             if not chunk:
                 break
             data += chunk
 
-        # submatrix = np.frombuffer(data, dtype=np.int32).reshape((n, -1))
-        submatrix = np.frombuffer(data, dtype=np.uint8).reshape((n, -1))
-        
+        submatrix = np.frombuffer(data, dtype=np.int32).reshape((n, -1))
         print("Received submatrix:")
         printMatrixTruncated(submatrix)
 
@@ -173,10 +146,9 @@ def main():
     matrixSize, port, status = readArguments()
 
     # read the configuration file
-    configFile = "config2.in"        # 2 slaves
-    # configFile = "config16.in"     # 16 slaves
+    configFile = "config.in"
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
-    # print(masterIP, masterPort, numSlaves, slavesInfo)
+    print(masterIP, masterPort, numSlaves, slavesInfo)
 
     # start a socket
     # networkSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
