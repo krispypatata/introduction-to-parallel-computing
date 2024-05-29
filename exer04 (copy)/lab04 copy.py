@@ -4,26 +4,6 @@ import sys
 import time
 import struct
 
-# ======================================================================================================
-# a function for calculating the Pearson Correlation Coefficient vector of an mxn square matrix X and an nx1 vector y
-def pearson_cor(mat, vector):
-    # for code simplicity/clarity
-    m = mat.shape[0]
-    n = mat.shape[1]
-
-    # get the Pearson correlation coefficient of the matrix and the vector, use numpy's built-in function (corrcoef)
-    cor = np.zeros(m)
-
-    for i in range(m):
-        # get the correlation coefficient matrix of the row and the vector
-        corr_matrix = np.corrcoef(mat[i], vector)[0,1]
-        # extract the correlation coefficient
-        cor[i] = corr_matrix
-
-    # return the Pearson correlation coefficients
-    return cor
-
-
 # ==================================================================================================
 # function to verify the size of a numpy matrix
 def printMatrixSize(mat):
@@ -150,53 +130,50 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
-    # generate a random vector of size n
-    vectorY = np.random.randint(1, 256, size=(n), dtype=np.uint8)
-
+    masterSocket = None
     totalTime = 0
     try:
-        for i, slaveInfo in enumerate(slavesInfo):
+        masterSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        masterSocket.bind(('', p))
+        masterSocket.listen(t)
+        print("Waiting for connections...")
+
+        for i in range(t):
             conn = None
             try:
-                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                conn.connect(slaveInfo)
+                conn, addr = masterSocket.accept()
                 print()
                 print("="*80)
-                print('Connected to', slaveInfo)
+                print('Connected to', addr)
                 startTime = time.time()  # Record the start time after establishing connection
-
-                # Send submatrix to slave
                 data = submatrices[i].tobytes()
-                sendMessage(conn, data)
-                print(f'Sent {len(data)} bytes to', slaveInfo)
 
-                # Send vector to slave
-                data = vectorY.tobytes()
                 sendMessage(conn, data)
-                print("Sent vector to", slaveInfo)
-
+                print(f'Sent {len(data)} bytes to', addr)
 
                 # Receive "ack" from slave
                 received = receiveMessage(conn)
-                print(f"Received '{received.decode()}' from {slaveInfo}")
-
+                print(f"Received '{received.decode()}' from {addr}")
 
 
             except Exception as e:
-                print(f"An error occurred while communicating with {slaveInfo}: {e}")
+                print(f"An error occurred while communicating with {addr}: {e}")
 
             finally:
                 if conn:
-                    print("Closing connection with", slaveInfo)
+                    print("Closing connection with", addr)
                     conn.close()
 
                     endTime = time.time()
                     elapsedTime = endTime - startTime
                     totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
+                    print(f"Time taken to send submatrix to {addr}: {elapsedTime} seconds")
 
     except Exception as e:
         print("An error occurred in master logic:", e)
+    finally:
+        if masterSocket:
+            masterSocket.close()
     
     print()
     print("="*80)
@@ -208,44 +185,21 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
     try:
         slaveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         slaveSocket.bind(('', port))
-        slaveSocket.listen(1)  # Listen for connections from master
-        print("Waiting for connection from master...")
-
-        conn, addr = slaveSocket.accept()
+        slaveSocket.connect((masterIP, masterPort))
         print('Connected to master')
 
         # receive the submatrix from the master
-        data = receiveMessage(conn)
+        data = receiveMessage(slaveSocket)
 
         # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
         
-
-        # receive the vector from the master
-        data = receiveMessage(conn)
-        vectorY = np.frombuffer(data, dtype=np.uint8)
-
         # print the processed submatrix
         print("Received submatrix:")
         printMatrixTruncated(submatrix)
 
-        print("Received vector:")
-        print(vectorY)
-
-        # # compute the Pearson Correlation Coefficient vector and print it
-        # compute the Pearson Correlation Coefficient vector and print it
-        correlationVector = pearson_cor(submatrix, vectorY)
-        print("Pearson Correlation Coefficient vector:")
-        print(correlationVector)
-
         # Send "ack" to master
-        print("Sending 'ack' to master")
-        sendMessage(conn, b'ack')
-
-        # Handle subsequent communication with master
-        # while True:
-        #     # For example, if you need to send more data to the master, do it here
-        #     pass
+        sendMessage(slaveSocket, b'ack')
 
     except Exception as e:
         print("An error occurred in slave logic:", e)

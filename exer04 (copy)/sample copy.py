@@ -40,79 +40,78 @@ def print_vector(vector, n, n_decimal):
 
 def pearson_cor(mat, vector):
     # for code simplicity/clarity
-    X = mat
-    y = vector
+    X = mat.astype(float)
+    y = vector.astype(float)
     m = mat.shape[0]
     n = mat.shape[1]
 
     # vector for the Pearson Correlation coefficients
-    v = np.zeros(m)
+    v = np.zeros(n)
 
     # ==================================================================================================
     # Step 1: Calculate the sums of x and y
     # ==================================================================================================
-    sum_X = np.zeros(m)
+    sum_X = np.zeros(n)
     sum_y = 0
 
     # traverse through the columns of the matrix
-    for i in range(m):
-        sumRow = 0
-        for j in range(n):
-            sumRow += X[i][j]
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j]
         
         # add the sum of the column to the sum_X vector
-        sum_X[i] = sumRow
+        sum_X[j] = sumCol
 
     # traverse through the elements of the vector
-    for i in range(n):
+    for i in range(m):
         sum_y += y[i]
 
     # ==================================================================================================
     # Step 2: Calculate x2 and y2 and their sums
     # ==================================================================================================
-    sum_X_squared = np.zeros(m)
+    sum_X_squared = np.zeros(n)
     sum_y_squared = 0
 
     # traverse through the columns of the matrix, square all elements and get their sum
-    for i in range(m):
-        sumRow = 0
-        for j in range(n):
-            sumRow += X[i][j] * X[i][j]
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j] * X[i][j]
         
         # add the sum of the column to the sum_X_squared vector
-        sum_X_squared[i] = sumRow
+        sum_X_squared[j] = sumCol
 
     # traverse through the elements of the vector, square all elements and get their sum
-    for i in range(n):
+    for i in range(m):
         sum_y_squared += y[i] * y[i]
 
     # ==================================================================================================
     # Step 3: Calculate the cross product and its sum
     # ==================================================================================================
-    sum_cross_product = np.zeros(m)
+    sum_cross_product = np.zeros(n)
 
-    # traverse through the rows of matrix x, compute for the cross product of each row and vector y
-    for i in range(m):
-        sum_row_cross_product = 0
-        for j in range(n):
-            sum_row_cross_product += X[i][j] * y[j]
+    # traverse through the columns of matrix x, compute for the cross product of each column and vector y
+    for j in range(n):
+        sum_col_cross_product = 0
+        for i in range(m):
+            sum_col_cross_product += X[i][j] * y[i]
         
         # add the sum of the column to the sum_cross_product vector
-        sum_cross_product[i] = sum_row_cross_product
+        sum_cross_product[j] = sum_col_cross_product
 
     # ==================================================================================================
     # Step 4: Calculate r
     # ==================================================================================================
-    for i in range(m):
+    for i in range(n):
         r = 0
-        r = (n * sum_cross_product[i] - sum_X[i] * sum_y) / np.sqrt( (n * sum_X_squared[i] - sum_X[i]*sum_X[i]) * (n * sum_y_squared - sum_y*sum_y) )
+        r = (m * sum_cross_product[i] - sum_X[i] * sum_y) / np.sqrt( (m * sum_X_squared[i] - sum_X[i]*sum_X[i]) * (m * sum_y_squared - sum_y*sum_y) )
         v[i] = r
 
     # --------------------------------------------------------------------------------------------------
     # for checking
     print("\n\nPEARSON CORRELATION COEFFICIENTS:")
-    print_vector(v, m, 4)
-    # print(v)
+    print_vector(v, n, 4)
     # --------------------------------------------------------------------------------------------------
 
     return v
@@ -125,35 +124,21 @@ def test_algorithm():
     lengths = np.array([53.1, 49.7, 48.4, 54.2, 54.9, 43.7, 47.2, 45.2, 54.4, 50.4])
 
     # creating a 10x10 matrix
-    n = 10
-    mat = np.zeros((n, n))
+    n = 25000
+    # mat = np.zeros((n, n))
 
-    for row in range(n):
-        mat[row, :] = weights
+    # for col in range(n):
+    #     mat[:, col] = weights
 
     # for checking (printing)
-    print_matrix(mat, 4, n, 2)
+    # print_matrix(mat, 4, n, 2)
 
-    pearson_cor(mat[:4], lengths)
     # compute for the Pearson Correlation Coefficient of the matrix and the given vector
-    # y = np.random.randint(1, 256, size=(n), dtype=np.uint8)
-    # x = np.random.randint(1, 256, size=(4, n), dtype=np.uint8)
+    y = np.random.randint(1, 256, size=(n), dtype=np.uint8)
+    x = np.random.randint(1, 256, size=(n, n), dtype=np.uint8)
 
-    z = np.random.random([10000, 25000])
-    # print(z)
-    w = np.random.random(25000)
-    # print(w)
-    pearson_cor(z,w)
-
-    a = np.random.randint(1, 256, size=(n, n), dtype=np.uint8)
-    b = np.random.randint(1, 256, size=(n), dtype=np.uint8)
-
-    # print(x)
-    # print()
-    # print(y)
-
-    # # only use the first 4 rows of the matrix
-    # pearson_cor(x, y)    
+    # only use the first 4 rows of the matrix
+    pearson_cor(x, y)    
 
 # ======================================================================================================
 # Start of the main program

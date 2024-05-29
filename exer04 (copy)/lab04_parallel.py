@@ -3,26 +3,7 @@ import socket
 import sys
 import time
 import struct
-
-# ======================================================================================================
-# a function for calculating the Pearson Correlation Coefficient vector of an mxn square matrix X and an nx1 vector y
-def pearson_cor(mat, vector):
-    # for code simplicity/clarity
-    m = mat.shape[0]
-    n = mat.shape[1]
-
-    # get the Pearson correlation coefficient of the matrix and the vector, use numpy's built-in function (corrcoef)
-    cor = np.zeros(m)
-
-    for i in range(m):
-        # get the correlation coefficient matrix of the row and the vector
-        corr_matrix = np.corrcoef(mat[i], vector)[0,1]
-        # extract the correlation coefficient
-        cor[i] = corr_matrix
-
-    # return the Pearson correlation coefficients
-    return cor
-
+import threading
 
 # ==================================================================================================
 # function to verify the size of a numpy matrix
@@ -140,7 +121,32 @@ def receiveAllMessage(sock, n):
 
 
 # ==================================================================================================
+# ==================================================================================================
 # function to handle logic for the master node
+def handleSlaveConnection(slaveInfo, submatrix, results):
+    conn = None
+    try:
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.connect(slaveInfo)
+        print(f'Connected to {slaveInfo}')
+
+        data = submatrix.tobytes()
+        sendMessage(conn, data)
+        print(f'Sent {len(data)} bytes to {slaveInfo}')
+
+        # Receive "ack" from slave
+        received = receiveMessage(conn)
+        print(f"Received '{received.decode()}' from {slaveInfo}")
+
+        results[slaveInfo] = "Success"
+    except Exception as e:
+        print(f"An error occurred while communicating with {slaveInfo}: {e}")
+        results[slaveInfo] = f"Failed: {e}"
+    finally:
+        if conn:
+            print(f"Closing connection with {slaveInfo}")
+            conn.close()
+
 def handleMasterLogic(n, p, t, slavesInfo):
     # generate an nxn square matrix populated with random positive integers
     M = generateNxNMatrix(n)
@@ -150,57 +156,31 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
-    # generate a random vector of size n
-    vectorY = np.random.randint(1, 256, size=(n), dtype=np.uint8)
-
     totalTime = 0
-    try:
-        for i, slaveInfo in enumerate(slavesInfo):
-            conn = None
-            try:
-                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                conn.connect(slaveInfo)
-                print()
-                print("="*80)
-                print('Connected to', slaveInfo)
-                startTime = time.time()  # Record the start time after establishing connection
+    threads = []
+    results = {}
 
-                # Send submatrix to slave
-                data = submatrices[i].tobytes()
-                sendMessage(conn, data)
-                print(f'Sent {len(data)} bytes to', slaveInfo)
+    for i, slaveInfo in enumerate(slavesInfo):
+        submatrix = submatrices[i]
+        thread = threading.Thread(target=handleSlaveConnection, args=(slaveInfo, submatrix, results))
+        threads.append(thread)
 
-                # Send vector to slave
-                data = vectorY.tobytes()
-                sendMessage(conn, data)
-                print("Sent vector to", slaveInfo)
+    startTime = time.time()  # Record the start time
 
+    for thread in threads:
+        thread.start()
 
-                # Receive "ack" from slave
-                received = receiveMessage(conn)
-                print(f"Received '{received.decode()}' from {slaveInfo}")
+    for thread in threads:
+        thread.join()
 
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    totalTime += elapsedTime
 
-
-            except Exception as e:
-                print(f"An error occurred while communicating with {slaveInfo}: {e}")
-
-            finally:
-                if conn:
-                    print("Closing connection with", slaveInfo)
-                    conn.close()
-
-                    endTime = time.time()
-                    elapsedTime = endTime - startTime
-                    totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
-
-    except Exception as e:
-        print("An error occurred in master logic:", e)
-    
     print()
     print("="*80)
     print("Total time taken:", totalTime, "seconds")
+    print("Results:", results)
 
 # function to handle logic for the slave node
 def handleSlaveLogic(n, t, masterIP, masterPort, port):
@@ -220,29 +200,15 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
         
-
-        # receive the vector from the master
-        data = receiveMessage(conn)
-        vectorY = np.frombuffer(data, dtype=np.uint8)
-
         # print the processed submatrix
         print("Received submatrix:")
         printMatrixTruncated(submatrix)
-
-        print("Received vector:")
-        print(vectorY)
-
-        # # compute the Pearson Correlation Coefficient vector and print it
-        # compute the Pearson Correlation Coefficient vector and print it
-        correlationVector = pearson_cor(submatrix, vectorY)
-        print("Pearson Correlation Coefficient vector:")
-        print(correlationVector)
 
         # Send "ack" to master
         print("Sending 'ack' to master")
         sendMessage(conn, b'ack')
 
-        # Handle subsequent communication with master
+        # # Handle subsequent communication with master
         # while True:
         #     # For example, if you need to send more data to the master, do it here
         #     pass
@@ -260,8 +226,8 @@ def main():
     matrixSize, port, status = readArguments()
 
     # read the configuration file
-    configFile = "config2.in"        # 2 slaves
-    # configFile = "config16.in"     # 16 slaves
+    # configFile = "config2.in"        # 2 slaves
+    configFile = "config16.in"     # 16 slaves
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
     # print(masterIP, masterPort, numSlaves, slavesInfo)
 

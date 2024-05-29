@@ -5,23 +5,78 @@ import time
 import struct
 
 # ======================================================================================================
-# a function for calculating the Pearson Correlation Coefficient vector of an mxn square matrix X and an nx1 vector y
+# a function to compute the Pearson Correlation Coefficient vector of an mxn matrix X with a nx1 vector y
 def pearson_cor(mat, vector):
     # for code simplicity/clarity
+    X = mat
+    y = vector
     m = mat.shape[0]
     n = mat.shape[1]
 
-    # get the Pearson correlation coefficient of the matrix and the vector, use numpy's built-in function (corrcoef)
-    cor = np.zeros(m)
+    # vector for the Pearson Correlation coefficients
+    v = np.zeros(n)
 
+    # ==================================================================================================
+    # Step 1: Calculate the sums of x and y
+    # ==================================================================================================
+    sum_X = np.zeros(n)
+    sum_y = 0
+
+    # traverse through the columns of the matrix
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j]
+        
+        # add the sum of the column to the sum_X vector
+        sum_X[j] = sumCol
+
+    # traverse through the elements of the vector
     for i in range(m):
-        # get the correlation coefficient matrix of the row and the vector
-        corr_matrix = np.corrcoef(mat[i], vector)[0,1]
-        # extract the correlation coefficient
-        cor[i] = corr_matrix
+        sum_y += y[i]
 
-    # return the Pearson correlation coefficients
-    return cor
+    # ==================================================================================================
+    # Step 2: Calculate x2 and y2 and their sums
+    # ==================================================================================================
+    sum_X_squared = np.zeros(n)
+    sum_y_squared = 0
+
+    # traverse through the columns of the matrix, square all elements and get their sum
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j] * X[i][j]
+        
+        # add the sum of the column to the sum_X_squared vector
+        sum_X_squared[j] = sumCol
+
+    # traverse through the elements of the vector, square all elements and get their sum
+    for i in range(m):
+        sum_y_squared += y[i] * y[i]
+
+    # ==================================================================================================
+    # Step 3: Calculate the cross product and its sum
+    # ==================================================================================================
+    sum_cross_product = np.zeros(n)
+
+    # traverse through the columns of matrix x, compute for the cross product of each column and vector y
+    for j in range(n):
+        sum_col_cross_product = 0
+        for i in range(m):
+            sum_col_cross_product += X[i][j] * y[i]
+        
+        # add the sum of the column to the sum_cross_product vector
+        sum_cross_product[j] = sum_col_cross_product
+
+    # ==================================================================================================
+    # Step 4: Calculate r
+    # ==================================================================================================
+    for i in range(n):
+        r = 0
+        r = (m * sum_cross_product[i] - sum_X[i] * sum_y) / np.sqrt( (m * sum_X_squared[i] - sum_X[i]*sum_X[i]) * (m * sum_y_squared - sum_y*sum_y) )
+        v[i] = r
+
+    return v
 
 
 # ==================================================================================================
@@ -150,9 +205,6 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
-    # generate a random vector of size n
-    vectorY = np.random.randint(1, 256, size=(n), dtype=np.uint8)
-
     totalTime = 0
     try:
         for i, slaveInfo in enumerate(slavesInfo):
@@ -164,23 +216,14 @@ def handleMasterLogic(n, p, t, slavesInfo):
                 print("="*80)
                 print('Connected to', slaveInfo)
                 startTime = time.time()  # Record the start time after establishing connection
-
-                # Send submatrix to slave
                 data = submatrices[i].tobytes()
+
                 sendMessage(conn, data)
                 print(f'Sent {len(data)} bytes to', slaveInfo)
-
-                # Send vector to slave
-                data = vectorY.tobytes()
-                sendMessage(conn, data)
-                print("Sent vector to", slaveInfo)
-
 
                 # Receive "ack" from slave
                 received = receiveMessage(conn)
                 print(f"Received '{received.decode()}' from {slaveInfo}")
-
-
 
             except Exception as e:
                 print(f"An error occurred while communicating with {slaveInfo}: {e}")
@@ -220,29 +263,15 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
         
-
-        # receive the vector from the master
-        data = receiveMessage(conn)
-        vectorY = np.frombuffer(data, dtype=np.uint8)
-
         # print the processed submatrix
         print("Received submatrix:")
         printMatrixTruncated(submatrix)
-
-        print("Received vector:")
-        print(vectorY)
-
-        # # compute the Pearson Correlation Coefficient vector and print it
-        # compute the Pearson Correlation Coefficient vector and print it
-        correlationVector = pearson_cor(submatrix, vectorY)
-        print("Pearson Correlation Coefficient vector:")
-        print(correlationVector)
 
         # Send "ack" to master
         print("Sending 'ack' to master")
         sendMessage(conn, b'ack')
 
-        # Handle subsequent communication with master
+        # # Handle subsequent communication with master
         # while True:
         #     # For example, if you need to send more data to the master, do it here
         #     pass
@@ -260,8 +289,8 @@ def main():
     matrixSize, port, status = readArguments()
 
     # read the configuration file
-    configFile = "config2.in"        # 2 slaves
-    # configFile = "config16.in"     # 16 slaves
+    # configFile = "config2.in"        # 2 slaves
+    configFile = "config16.in"     # 16 slaves
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
     # print(masterIP, masterPort, numSlaves, slavesInfo)
 

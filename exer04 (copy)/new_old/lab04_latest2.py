@@ -1,30 +1,8 @@
 import numpy as np
 import socket
 import sys
-import time
-import struct
 
-# ======================================================================================================
-# a function for calculating the Pearson Correlation Coefficient vector of an mxn square matrix X and an nx1 vector y
-def pearson_cor(mat, vector):
-    # for code simplicity/clarity
-    m = mat.shape[0]
-    n = mat.shape[1]
-
-    # get the Pearson correlation coefficient of the matrix and the vector, use numpy's built-in function (corrcoef)
-    cor = np.zeros(m)
-
-    for i in range(m):
-        # get the correlation coefficient matrix of the row and the vector
-        corr_matrix = np.corrcoef(mat[i], vector)[0,1]
-        # extract the correlation coefficient
-        cor[i] = corr_matrix
-
-    # return the Pearson correlation coefficients
-    return cor
-
-
-# ==================================================================================================
+# =============================================================================
 # function to verify the size of a numpy matrix
 def printMatrixSize(mat):
     print("Matrix size:", mat.shape)
@@ -72,8 +50,7 @@ def generateNxNMatrix(n):
     matrix = np.random.randint(1, 256, size=(n, n), dtype=np.uint8)
     return matrix
 
-
-# ==================================================================================================
+# =============================================================================
 # function to read the configuration file (config.in)
 # The configuration file should have the following format:
 # <master_ip> <master_port>
@@ -111,35 +88,6 @@ def readArguments():
         print("An error occurred while parsing command-line arguments:", e)
         sys.exit(1)
 
-
-# ==================================================================================================
-# ref: https://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data
-def sendMessage(sock, msg):
-    # Prefix each message with a 4-byte length (network byte order)
-    msg = struct.pack('>I', len(msg)) + msg
-    sock.sendall(msg)
-
-def receiveMessage(sock):
-    # Read message length and unpack it into an integer
-    raw_msglen = receiveAllMessage(sock, 4)
-    if not raw_msglen:
-        return None
-    msglen = struct.unpack('>I', raw_msglen)[0]
-    # Read the message data
-    return receiveAllMessage(sock, msglen)
-
-def receiveAllMessage(sock, n):
-    # Helper function to recv n bytes or return None if EOF is hit
-    data = bytearray()
-    while len(data) < n:
-        packet = sock.recv(n - len(data))
-        if not packet:
-            return None
-        data.extend(packet)
-    return data
-
-
-# ==================================================================================================
 # function to handle logic for the master node
 def handleMasterLogic(n, p, t, slavesInfo):
     # generate an nxn square matrix populated with random positive integers
@@ -150,57 +98,40 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
-    # generate a random vector of size n
-    vectorY = np.random.randint(1, 256, size=(n), dtype=np.uint8)
-
-    totalTime = 0
+    masterSocket = None
     try:
-        for i, slaveInfo in enumerate(slavesInfo):
+        masterSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        masterSocket.bind(('', p))
+        masterSocket.listen(t)
+        print("Waiting for connections...")
+
+        for i in range(t):
             conn = None
             try:
-                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                conn.connect(slaveInfo)
-                print()
-                print("="*80)
-                print('Connected to', slaveInfo)
-                startTime = time.time()  # Record the start time after establishing connection
-
-                # Send submatrix to slave
+                conn, addr = masterSocket.accept()
+                print('Connected to', addr)
                 data = submatrices[i].tobytes()
-                sendMessage(conn, data)
-                print(f'Sent {len(data)} bytes to', slaveInfo)
+                # Send data in chunks
+                bytes_sent = 0
+                while bytes_sent < len(data):
+                    chunk = data[bytes_sent:bytes_sent + 16777216]
+                    conn.sendall(chunk)
+                    bytes_sent += len(chunk)
+                    print(bytes_sent, 'bytes sent out of', len(data))
 
-                # Send vector to slave
-                data = vectorY.tobytes()
-                sendMessage(conn, data)
-                print("Sent vector to", slaveInfo)
-
-
-                # Receive "ack" from slave
-                received = receiveMessage(conn)
-                print(f"Received '{received.decode()}' from {slaveInfo}")
-
-
+                print('Sent submatrix to', addr)
 
             except Exception as e:
-                print(f"An error occurred while communicating with {slaveInfo}: {e}")
+                print(f"An error occurred while communicating with {addr}: {e}")
 
             finally:
                 if conn:
-                    print("Closing connection with", slaveInfo)
                     conn.close()
-
-                    endTime = time.time()
-                    elapsedTime = endTime - startTime
-                    totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
-
     except Exception as e:
         print("An error occurred in master logic:", e)
-    
-    print()
-    print("="*80)
-    print("Total time taken:", totalTime, "seconds")
+    finally:
+        if masterSocket:
+            masterSocket.close()
 
 # function to handle logic for the slave node
 def handleSlaveLogic(n, t, masterIP, masterPort, port):
@@ -208,44 +139,20 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
     try:
         slaveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         slaveSocket.bind(('', port))
-        slaveSocket.listen(1)  # Listen for connections from master
-        print("Waiting for connection from master...")
-
-        conn, addr = slaveSocket.accept()
+        slaveSocket.connect((masterIP, masterPort))
         print('Connected to master')
 
-        # receive the submatrix from the master
-        data = receiveMessage(conn)
+        data = b''
+        while True:
+            chunk = slaveSocket.recv(16777216)
+            if not chunk:
+                break
+            data += chunk
 
-        # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
         
-
-        # receive the vector from the master
-        data = receiveMessage(conn)
-        vectorY = np.frombuffer(data, dtype=np.uint8)
-
-        # print the processed submatrix
         print("Received submatrix:")
         printMatrixTruncated(submatrix)
-
-        print("Received vector:")
-        print(vectorY)
-
-        # # compute the Pearson Correlation Coefficient vector and print it
-        # compute the Pearson Correlation Coefficient vector and print it
-        correlationVector = pearson_cor(submatrix, vectorY)
-        print("Pearson Correlation Coefficient vector:")
-        print(correlationVector)
-
-        # Send "ack" to master
-        print("Sending 'ack' to master")
-        sendMessage(conn, b'ack')
-
-        # Handle subsequent communication with master
-        # while True:
-        #     # For example, if you need to send more data to the master, do it here
-        #     pass
 
     except Exception as e:
         print("An error occurred in slave logic:", e)
@@ -253,7 +160,7 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         if slaveSocket:
             slaveSocket.close()
 
-# ==================================================================================================
+# =============================================================================
 # start of the main program
 def main():
     # read the arguments from the command line

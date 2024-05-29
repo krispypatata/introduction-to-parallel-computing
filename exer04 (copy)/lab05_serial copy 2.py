@@ -5,23 +5,79 @@ import time
 import struct
 
 # ======================================================================================================
-# a function for calculating the Pearson Correlation Coefficient vector of an mxn square matrix X and an nx1 vector y
+# a function to compute the Pearson Correlation Coefficient vector of an mxn matrix X with a nx1 vector y
 def pearson_cor(mat, vector):
     # for code simplicity/clarity
+    # convert the matrix and vector to float
+    X = mat.astype(float)
+    y = vector.astype(float)
     m = mat.shape[0]
     n = mat.shape[1]
 
-    # get the Pearson correlation coefficient of the matrix and the vector, use numpy's built-in function (corrcoef)
-    cor = np.zeros(m)
+    # vector for the Pearson Correlation coefficients
+    v = np.zeros(n)
 
+    # ==================================================================================================
+    # Step 1: Calculate the sums of x and y
+    # ==================================================================================================
+    sum_X = np.zeros(n)
+    sum_y = 0
+
+    # traverse through the columns of the matrix
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j]
+        
+        # add the sum of the column to the sum_X vector
+        sum_X[j] = sumCol
+
+    # traverse through the elements of the vector
     for i in range(m):
-        # get the correlation coefficient matrix of the row and the vector
-        corr_matrix = np.corrcoef(mat[i], vector)[0,1]
-        # extract the correlation coefficient
-        cor[i] = corr_matrix
+        sum_y += y[i]
 
-    # return the Pearson correlation coefficients
-    return cor
+    # ==================================================================================================
+    # Step 2: Calculate x2 and y2 and their sums
+    # ==================================================================================================
+    sum_X_squared = np.zeros(n)
+    sum_y_squared = 0
+
+    # traverse through the columns of the matrix, square all elements and get their sum
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j] * X[i][j]
+        
+        # add the sum of the column to the sum_X_squared vector
+        sum_X_squared[j] = sumCol
+
+    # traverse through the elements of the vector, square all elements and get their sum
+    for i in range(m):
+        sum_y_squared += y[i] * y[i]
+
+    # ==================================================================================================
+    # Step 3: Calculate the cross product and its sum
+    # ==================================================================================================
+    sum_cross_product = np.zeros(n)
+
+    # traverse through the columns of matrix x, compute for the cross product of each column and vector y
+    for j in range(n):
+        sum_col_cross_product = 0
+        for i in range(m):
+            sum_col_cross_product += X[i][j] * y[i]
+        
+        # add the sum of the column to the sum_cross_product vector
+        sum_cross_product[j] = sum_col_cross_product
+
+    # ==================================================================================================
+    # Step 4: Calculate r
+    # ==================================================================================================
+    for i in range(n):
+        r = 0
+        r = (m * sum_cross_product[i] - sum_X[i] * sum_y) / np.sqrt( (m * sum_X_squared[i] - sum_X[i]*sum_X[i]) * (m * sum_y_squared - sum_y*sum_y) )
+        v[i] = r
+
+    return v
 
 
 # ==================================================================================================
@@ -232,11 +288,12 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         print("Received vector:")
         print(vectorY)
 
-        # # compute the Pearson Correlation Coefficient vector and print it
-        # compute the Pearson Correlation Coefficient vector and print it
-        correlationVector = pearson_cor(submatrix, vectorY)
-        print("Pearson Correlation Coefficient vector:")
-        print(correlationVector)
+        # compute the Pearson Correlation Coefficient vector
+        result = pearson_cor(submatrix, vectorY)
+
+        # print the result
+        print("Result:")
+        print(result)
 
         # Send "ack" to master
         print("Sending 'ack' to master")
