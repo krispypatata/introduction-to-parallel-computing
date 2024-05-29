@@ -163,6 +163,7 @@ def handleMasterLogic(n, p, t, slavesInfo):
             conn = None
             try:
                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 conn.connect(slaveInfo)
                 print()
                 print("="*80)
@@ -221,6 +222,7 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
     slaveSocket = None
     try:
         slaveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        slaveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         slaveSocket.bind(('', port))
         slaveSocket.listen(1)  # Listen for connections from master
         print("Waiting for connection from master...")

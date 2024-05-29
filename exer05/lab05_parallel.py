@@ -150,6 +150,7 @@ def handleSlaveConnection(slaveInfo, submatrix, vector, results, index):
     conn = None
     try:
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         conn.connect(slaveInfo)
         print(f'Connected to {slaveInfo}')
 
@@ -232,15 +233,13 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
     slaveSocket = None
     try:
         slaveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        slaveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         slaveSocket.bind(('', port))
         slaveSocket.listen(1)  # Listen for connections from master
         print("Waiting for connection from master...")
 
         conn, addr = slaveSocket.accept()
         print('Connected to master')
-
-        # measure the elapsed time of the slave process
-        startTime = time.time()
 
         # receive the submatrix from the master
         data = receiveMessage(conn)
@@ -258,10 +257,17 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         print("Received vector Y:")
         print(vectorY)
 
+        # measure the elapsed time of the computation of the Pearson Correlation Coefficient
+        startTime = time.time()
+
         # compute the Pearson correlation coefficient of the submatrix and the vector
         correlationVector = pearson_cor(submatrix, vectorY)
         print("Pearson correlation coefficient vector:")
         print(correlationVector)
+
+        endTime = time.time()
+        elapsedTime = endTime - startTime
+        print(f"Time taken to compute Pearson Correlation Coefficient vector: {elapsedTime} seconds")
 
         # send the correlation vector to the master
         data = correlationVector.tobytes()
@@ -271,10 +277,6 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         # Send "ack" to master
         print("Sending 'ack' to master")
         sendMessage(conn, b'ack')
-
-        endTime = time.time()
-        elapsedTime = endTime - startTime
-        print(f"Elapsed time: {elapsedTime} seconds")
 
         # # Handle subsequent communication with master
         # while True:

@@ -120,16 +120,20 @@ c16:
 	python3 lab04.py 25000 5016 1
 
 perms:
-	chmod +x 2_clients.sh
-	chmod +x 4_clients.sh
-	chmod +x 8_clients.sh
-	chmod +x 16_clients.sh
+	chmod +x s2_clients.sh
+	chmod +x s4_clients.sh
+	chmod +x s8_clients.sh
+	chmod +x s16_clients.sh
+	chmod +x p2_clients.sh
+	chmod +x p4_clients.sh
+	chmod +x p8_clients.sh
+	chmod +x p16_clients.sh
 
 ser:
-	python3 lab04_serial.py 25000 5000 0
+	python3 lab04_serial.py 20000 5000 0
 
 par:
-	python3 lab04_parallel.py 25000 5000 0
+	python3 lab04_parallel.py 20000 5000 0
 
 kill:
 	lsof -i :5000

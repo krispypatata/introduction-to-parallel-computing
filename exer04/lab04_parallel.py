@@ -128,6 +128,7 @@ def handleSlaveConnection(slaveInfo, submatrix, results):
     conn = None
     try:
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         conn.connect(slaveInfo)
         print(f'Connected to {slaveInfo}')
 
@@ -186,6 +187,7 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
     slaveSocket = None
     try:
         slaveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        slaveSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         slaveSocket.bind(('', port))
         slaveSocket.listen(1)  # Listen for connections from master
         print("Waiting for connection from master...")
@@ -233,7 +235,9 @@ def main():
 
     # read the configuration file
     # configFile = "config2.in"        # 2 slaves
-    configFile = "config16.in"     # 16 slaves
+    # configFile = "config4.in"        # 4 slaves
+    configFile = "config8.in"        # 8 slaves
+    # configFile = "config16.in"       # 16 slaves
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
     # print(masterIP, masterPort, numSlaves, slavesInfo)
 
