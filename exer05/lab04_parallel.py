@@ -1,9 +1,10 @@
 import numpy as np
 import socket
-import sys
-import time
 import struct
+import sys
 import threading
+import time
+
 
 # ==================================================================================================
 # function to verify the size of a numpy matrix
@@ -156,7 +157,6 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
-    totalTime = 0
     threads = []
     results = {}
 
@@ -175,11 +175,10 @@ def handleMasterLogic(n, p, t, slavesInfo):
 
     endTime = time.time()
     elapsedTime = endTime - startTime
-    totalTime += elapsedTime
 
     print()
     print("="*80)
-    print("Total time taken:", totalTime, "seconds")
+    print("Elapsed Time:", elapsedTime, "seconds")
     print("Results:", results)
 
 # function to handle logic for the slave node
@@ -194,6 +193,9 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         conn, addr = slaveSocket.accept()
         print('Connected to master')
 
+        # measure the elapsed time of the slave process
+        startTime = time.time()
+
         # receive the submatrix from the master
         data = receiveMessage(conn)
 
@@ -207,6 +209,10 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         # Send "ack" to master
         print("Sending 'ack' to master")
         sendMessage(conn, b'ack')
+
+        endTime = time.time()
+        elapsedTime = endTime - startTime
+        print(f"Elapsed time: {elapsedTime} seconds")
 
         # # Handle subsequent communication with master
         # while True:

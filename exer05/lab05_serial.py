@@ -1,8 +1,9 @@
 import numpy as np
 import socket
+import struct
 import sys
 import time
-import struct
+
 
 # ======================================================================================================
 # a function for calculating the Pearson Correlation Coefficient vector of an mxn square matrix X and an nx1 vector y
@@ -153,6 +154,9 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # generate a random vector of size n
     vectorY = np.random.randint(1, 256, size=(n), dtype=np.uint8)
 
+    # variable to store the accumulated Pearson Correlation Coefficient vector from all slaves
+    accumulatedCorrelation = []
+
     totalTime = 0
     try:
         for i, slaveInfo in enumerate(slavesInfo):
@@ -175,12 +179,21 @@ def handleMasterLogic(n, p, t, slavesInfo):
                 sendMessage(conn, data)
                 print("Sent vector to", slaveInfo)
 
+                # Receive computed Pearson Correlation Coefficient vector from slave
+                data = receiveMessage(conn)
+                correlationVector = np.frombuffer(data, dtype=np.float64)
+                # append the received correlation vector to the accumulated correlation vector
+                accumulatedCorrelation.append(correlationVector)
+                print(f"Received computed Pearson Correlation Coefficient vector from {slaveInfo}")
 
                 # Receive "ack" from slave
                 received = receiveMessage(conn)
                 print(f"Received '{received.decode()}' from {slaveInfo}")
 
-
+                endTime = time.time()
+                elapsedTime = endTime - startTime
+                totalTime += elapsedTime
+                print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
 
             except Exception as e:
                 print(f"An error occurred while communicating with {slaveInfo}: {e}")
@@ -190,17 +203,18 @@ def handleMasterLogic(n, p, t, slavesInfo):
                     print("Closing connection with", slaveInfo)
                     conn.close()
 
-                    endTime = time.time()
-                    elapsedTime = endTime - startTime
-                    totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
-
     except Exception as e:
         print("An error occurred in master logic:", e)
     
     print()
     print("="*80)
     print("Total time taken:", totalTime, "seconds")
+
+    # Print the accumulated Pearson correlation coefficient
+    accumulated_correlation = np.concatenate(accumulatedCorrelation)
+    print("Accumulated Pearson Correlation Coefficient vector:")
+    print(accumulated_correlation.shape)
+    print(accumulated_correlation) 
 
 # function to handle logic for the slave node
 def handleSlaveLogic(n, t, masterIP, masterPort, port):
@@ -214,13 +228,15 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         conn, addr = slaveSocket.accept()
         print('Connected to master')
 
+        # measure the elapsed time of the slave prcess
+        startTime = time.time()
+
         # receive the submatrix from the master
         data = receiveMessage(conn)
 
         # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
         
-
         # receive the vector from the master
         data = receiveMessage(conn)
         vectorY = np.frombuffer(data, dtype=np.uint8)
@@ -232,15 +248,23 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         print("Received vector:")
         print(vectorY)
 
-        # # compute the Pearson Correlation Coefficient vector and print it
         # compute the Pearson Correlation Coefficient vector and print it
         correlationVector = pearson_cor(submatrix, vectorY)
         print("Pearson Correlation Coefficient vector:")
         print(correlationVector)
 
+        # send the correlation vector to the master
+        data = correlationVector.tobytes()
+        sendMessage(conn, data)
+        print(f"Sent computed Pearson Correlation Coefficient vector to master")
+
         # Send "ack" to master
         print("Sending 'ack' to master")
         sendMessage(conn, b'ack')
+
+        endTime = time.time()
+        elapsedTime = endTime - startTime
+        print(f"Elapsed time: {elapsedTime} seconds")
 
         # Handle subsequent communication with master
         # while True:

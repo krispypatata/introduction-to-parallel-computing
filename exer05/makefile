@@ -129,7 +129,7 @@ ser:
 	python3 lab05_serial.py 25000 5000 0
 
 par:
-	python3 lab04_parallel.py 25000 5000 0
+	python3 lab05_parallel.py 25000 5000 0
 
 kill:
 	lsof -i :5000

@@ -6,6 +6,26 @@ import threading
 import time
 
 
+# ======================================================================================================
+# a function for calculating the Pearson Correlation Coefficient vector of an mxn square matrix X and an nx1 vector y
+def pearson_cor(mat, vector):
+    # for code simplicity/clarity
+    m = mat.shape[0]
+    n = mat.shape[1]
+
+    # get the Pearson correlation coefficient of the matrix and the vector, use numpy's built-in function (corrcoef)
+    cor = np.zeros(m)
+
+    for i in range(m):
+        # get the correlation coefficient matrix of the row and the vector
+        corr_matrix = np.corrcoef(mat[i], vector)[0,1]
+        # extract the correlation coefficient
+        cor[i] = corr_matrix
+
+    # return the Pearson correlation coefficients
+    return cor
+
+
 # ==================================================================================================
 # function to verify the size of a numpy matrix
 def printMatrixSize(mat):
@@ -122,18 +142,34 @@ def receiveAllMessage(sock, n):
 
 
 # ==================================================================================================
+# [global] dictionary to store correlation coefficient vectors from slaves
+accumulatedCorrelationDict = {} 
 # ==================================================================================================
 # function to handle logic for the master node
-def handleSlaveConnection(slaveInfo, submatrix, results):
+def handleSlaveConnection(slaveInfo, submatrix, vector, results, index):
     conn = None
     try:
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         conn.connect(slaveInfo)
         print(f'Connected to {slaveInfo}')
 
+        # Send the submatrix to the slave
         data = submatrix.tobytes()
         sendMessage(conn, data)
         print(f'Sent {len(data)} bytes to {slaveInfo}')
+
+        # Send the vector to the slave
+        data = vector.tobytes()
+        sendMessage(conn, data)
+        print(f'Sent vector Y to {slaveInfo}')
+
+        # Receive computed Pearson Correlation Coefficient vector from slave
+        data = receiveMessage(conn)
+        correlationVector = np.frombuffer(data, dtype=np.float64)
+        print(f"Received Pearson Correlation Coefficient vector from {slaveInfo}")
+
+        # Store the correlation vector in the correct index of accumulatedCorrelationDict
+        accumulatedCorrelationDict[index] = correlationVector
 
         # Receive "ack" from slave
         received = receiveMessage(conn)
@@ -157,12 +193,15 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
+    # generate a random vector of size n
+    vectorY = np.random.randint(1, 256, size=(n), dtype=np.uint8)
+
     threads = []
     results = {}
 
     for i, slaveInfo in enumerate(slavesInfo):
         submatrix = submatrices[i]
-        thread = threading.Thread(target=handleSlaveConnection, args=(slaveInfo, submatrix, results))
+        thread = threading.Thread(target=handleSlaveConnection, args=(slaveInfo, submatrix, vectorY, results, i))
         threads.append(thread)
 
     startTime = time.time()  # Record the start time
@@ -180,6 +219,13 @@ def handleMasterLogic(n, p, t, slavesInfo):
     print("="*80)
     print("Elapsed Time:", elapsedTime, "seconds")
     print("Results:", results)
+
+    # Convert the accumulated correlation coefficient vectors to a NumPy array
+    accumulatedCorrelation = np.array(list(accumulatedCorrelationDict.values())).flatten()
+    # Print the accumulated Pearson correlation coefficient
+    print("Accumulated Pearson Correlation Coefficient vector:")
+    print(accumulatedCorrelation.shape)
+    print(accumulatedCorrelation)
 
 # function to handle logic for the slave node
 def handleSlaveLogic(n, t, masterIP, masterPort, port):
@@ -205,6 +251,22 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         # print the processed submatrix
         print("Received submatrix:")
         printMatrixTruncated(submatrix)
+
+        # receive the vector from the master
+        data = receiveMessage(conn)
+        vectorY = np.frombuffer(data, dtype=np.uint8)
+        print("Received vector Y:")
+        print(vectorY)
+
+        # compute the Pearson correlation coefficient of the submatrix and the vector
+        correlationVector = pearson_cor(submatrix, vectorY)
+        print("Pearson correlation coefficient vector:")
+        print(correlationVector)
+
+        # send the correlation vector to the master
+        data = correlationVector.tobytes()
+        sendMessage(conn, data)
+        print(f"Sent computed Pearson Correlation Coefficient vector to master")
 
         # Send "ack" to master
         print("Sending 'ack' to master")
@@ -232,8 +294,8 @@ def main():
     matrixSize, port, status = readArguments()
 
     # read the configuration file
-    # configFile = "config2.in"        # 2 slaves
-    configFile = "config16.in"     # 16 slaves
+    configFile = "config2.in"        # 2 slaves
+    # configFile = "config16.in"     # 16 slaves
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
     # print(masterIP, masterPort, numSlaves, slavesInfo)
 

@@ -1,8 +1,9 @@
 import numpy as np
 import socket
+import struct
 import sys
 import time
-import struct
+
 
 # ==================================================================================================
 # function to verify the size of a numpy matrix
@@ -150,6 +151,11 @@ def handleMasterLogic(n, p, t, slavesInfo):
                 received = receiveMessage(conn)
                 print(f"Received '{received.decode()}' from {slaveInfo}")
 
+                endTime = time.time()
+                elapsedTime = endTime - startTime
+                totalTime += elapsedTime
+                print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
+
             except Exception as e:
                 print(f"An error occurred while communicating with {slaveInfo}: {e}")
 
@@ -158,17 +164,14 @@ def handleMasterLogic(n, p, t, slavesInfo):
                     print("Closing connection with", slaveInfo)
                     conn.close()
 
-                    endTime = time.time()
-                    elapsedTime = endTime - startTime
-                    totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
+
 
     except Exception as e:
         print("An error occurred in master logic:", e)
     
     print()
     print("="*80)
-    print("Total time taken:", totalTime, "seconds")
+    print("Total elapsed taken:", totalTime, "seconds")
 
 # function to handle logic for the slave node
 def handleSlaveLogic(n, t, masterIP, masterPort, port):
@@ -181,6 +184,9 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
 
         conn, addr = slaveSocket.accept()
         print('Connected to master')
+
+        # measure the elapsed time of the slave process
+        startTime = time.time()
 
         # receive the submatrix from the master
         data = receiveMessage(conn)
@@ -195,6 +201,10 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         # Send "ack" to master
         print("Sending 'ack' to master")
         sendMessage(conn, b'ack')
+
+        endTime = time.time()
+        elapsedTime = endTime - startTime
+        print(f"Elapsed time: {elapsedTime} seconds")
 
         # # Handle subsequent communication with master
         # while True:
