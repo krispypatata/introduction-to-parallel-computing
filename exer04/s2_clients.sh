@@ -2,7 +2,7 @@
 
 # Define the filename and matrix size as variables
 FILENAME="lab04_serial.py"
-MATRIX_SIZE=20000
+MATRIX_SIZE=30000
 
 for port in {5001..5002}
 do

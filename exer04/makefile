@@ -130,10 +130,10 @@ perms:
 	chmod +x p16_clients.sh
 
 ser:
-	python3 lab04_serial.py 20000 5000 0
+	python3 lab04_serial.py 30000 5000 0
 
 par:
-	python3 lab04_parallel.py 20000 5000 0
+	python3 lab04_parallel.py 30000 5000 0
 
 kill:
 	lsof -i :5000
