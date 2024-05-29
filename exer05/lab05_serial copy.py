@@ -4,6 +4,81 @@ import sys
 import time
 import struct
 
+# ======================================================================================================
+# a function to compute the Pearson Correlation Coefficient vector of an mxn matrix X with a nx1 vector y
+def pearson_cor(mat, vector):
+    # for code simplicity/clarity
+    X = mat
+    y = vector
+    m = mat.shape[0]
+    n = mat.shape[1]
+
+    # vector for the Pearson Correlation coefficients
+    v = np.zeros(n)
+
+    # ==================================================================================================
+    # Step 1: Calculate the sums of x and y
+    # ==================================================================================================
+    sum_X = np.zeros(n)
+    sum_y = 0
+
+    # traverse through the columns of the matrix
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j]
+        
+        # add the sum of the column to the sum_X vector
+        sum_X[j] = sumCol
+
+    # traverse through the elements of the vector
+    for i in range(m):
+        sum_y += y[i]
+
+    # ==================================================================================================
+    # Step 2: Calculate x2 and y2 and their sums
+    # ==================================================================================================
+    sum_X_squared = np.zeros(n)
+    sum_y_squared = 0
+
+    # traverse through the columns of the matrix, square all elements and get their sum
+    for j in range(n):
+        sumCol = 0
+        for i in range(m):
+            sumCol += X[i][j] * X[i][j]
+        
+        # add the sum of the column to the sum_X_squared vector
+        sum_X_squared[j] = sumCol
+
+    # traverse through the elements of the vector, square all elements and get their sum
+    for i in range(m):
+        sum_y_squared += y[i] * y[i]
+
+    # ==================================================================================================
+    # Step 3: Calculate the cross product and its sum
+    # ==================================================================================================
+    sum_cross_product = np.zeros(n)
+
+    # traverse through the columns of matrix x, compute for the cross product of each column and vector y
+    for j in range(n):
+        sum_col_cross_product = 0
+        for i in range(m):
+            sum_col_cross_product += X[i][j] * y[i]
+        
+        # add the sum of the column to the sum_cross_product vector
+        sum_cross_product[j] = sum_col_cross_product
+
+    # ==================================================================================================
+    # Step 4: Calculate r
+    # ==================================================================================================
+    for i in range(n):
+        r = 0
+        r = (m * sum_cross_product[i] - sum_X[i] * sum_y) / np.sqrt( (m * sum_X_squared[i] - sum_X[i]*sum_X[i]) * (m * sum_y_squared - sum_y*sum_y) )
+        v[i] = r
+
+    return v
+
+
 # ==================================================================================================
 # function to verify the size of a numpy matrix
 def printMatrixSize(mat):
@@ -130,50 +205,41 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
-    masterSocket = None
     totalTime = 0
     try:
-        masterSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        masterSocket.bind(('', p))
-        masterSocket.listen(t)
-        print("Waiting for connections...")
-
-        for i in range(t):
+        for i, slaveInfo in enumerate(slavesInfo):
             conn = None
             try:
-                conn, addr = masterSocket.accept()
+                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                conn.connect(slaveInfo)
                 print()
                 print("="*80)
-                print('Connected to', addr)
+                print('Connected to', slaveInfo)
                 startTime = time.time()  # Record the start time after establishing connection
                 data = submatrices[i].tobytes()
 
                 sendMessage(conn, data)
-                print(f'Sent {len(data)} bytes to', addr)
+                print(f'Sent {len(data)} bytes to', slaveInfo)
 
                 # Receive "ack" from slave
                 received = receiveMessage(conn)
-                print(f"Received '{received.decode()}' from {addr}")
-
+                print(f"Received '{received.decode()}' from {slaveInfo}")
 
             except Exception as e:
-                print(f"An error occurred while communicating with {addr}: {e}")
+                print(f"An error occurred while communicating with {slaveInfo}: {e}")
 
             finally:
                 if conn:
-                    print("Closing connection with", addr)
+                    print("Closing connection with", slaveInfo)
                     conn.close()
 
                     endTime = time.time()
                     elapsedTime = endTime - startTime
                     totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {addr}: {elapsedTime} seconds")
+                    print(f"Time taken to send submatrix to {slaveInfo}: {elapsedTime} seconds")
 
     except Exception as e:
         print("An error occurred in master logic:", e)
-    finally:
-        if masterSocket:
-            masterSocket.close()
     
     print()
     print("="*80)
@@ -185,11 +251,14 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
     try:
         slaveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         slaveSocket.bind(('', port))
-        slaveSocket.connect((masterIP, masterPort))
+        slaveSocket.listen(1)  # Listen for connections from master
+        print("Waiting for connection from master...")
+
+        conn, addr = slaveSocket.accept()
         print('Connected to master')
 
         # receive the submatrix from the master
-        data = receiveMessage(slaveSocket)
+        data = receiveMessage(conn)
 
         # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
@@ -199,7 +268,13 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         printMatrixTruncated(submatrix)
 
         # Send "ack" to master
-        sendMessage(slaveSocket, b'ack')
+        print("Sending 'ack' to master")
+        sendMessage(conn, b'ack')
+
+        # # Handle subsequent communication with master
+        # while True:
+        #     # For example, if you need to send more data to the master, do it here
+        #     pass
 
     except Exception as e:
         print("An error occurred in slave logic:", e)
@@ -214,8 +289,8 @@ def main():
     matrixSize, port, status = readArguments()
 
     # read the configuration file
-    configFile = "config2.in"        # 2 slaves
-    # configFile = "config16.in"     # 16 slaves
+    # configFile = "config2.in"        # 2 slaves
+    configFile = "config16.in"     # 16 slaves
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
     # print(masterIP, masterPort, numSlaves, slavesInfo)
 

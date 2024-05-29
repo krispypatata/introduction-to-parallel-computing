@@ -1,10 +1,8 @@
 import numpy as np
 import socket
 import sys
-import time
-import struct
 
-# ==================================================================================================
+# =============================================================================
 # function to verify the size of a numpy matrix
 def printMatrixSize(mat):
     print("Matrix size:", mat.shape)
@@ -52,8 +50,7 @@ def generateNxNMatrix(n):
     matrix = np.random.randint(1, 256, size=(n, n), dtype=np.uint8)
     return matrix
 
-
-# ==================================================================================================
+# =============================================================================
 # function to read the configuration file (config.in)
 # The configuration file should have the following format:
 # <master_ip> <master_port>
@@ -91,35 +88,6 @@ def readArguments():
         print("An error occurred while parsing command-line arguments:", e)
         sys.exit(1)
 
-
-# ==================================================================================================
-# ref: https://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data
-def sendMessage(sock, msg):
-    # Prefix each message with a 4-byte length (network byte order)
-    msg = struct.pack('>I', len(msg)) + msg
-    sock.sendall(msg)
-
-def receiveMessage(sock):
-    # Read message length and unpack it into an integer
-    raw_msglen = receiveAllMessage(sock, 4)
-    if not raw_msglen:
-        return None
-    msglen = struct.unpack('>I', raw_msglen)[0]
-    # Read the message data
-    return receiveAllMessage(sock, msglen)
-
-def receiveAllMessage(sock, n):
-    # Helper function to recv n bytes or return None if EOF is hit
-    data = bytearray()
-    while len(data) < n:
-        packet = sock.recv(n - len(data))
-        if not packet:
-            return None
-        data.extend(packet)
-    return data
-
-
-# ==================================================================================================
 # function to handle logic for the master node
 def handleMasterLogic(n, p, t, slavesInfo):
     # generate an nxn square matrix populated with random positive integers
@@ -131,7 +99,6 @@ def handleMasterLogic(n, p, t, slavesInfo):
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
     masterSocket = None
-    totalTime = 0
     try:
         masterSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         masterSocket.bind(('', p))
@@ -142,42 +109,29 @@ def handleMasterLogic(n, p, t, slavesInfo):
             conn = None
             try:
                 conn, addr = masterSocket.accept()
-                print()
-                print("="*80)
                 print('Connected to', addr)
-                startTime = time.time()  # Record the start time after establishing connection
                 data = submatrices[i].tobytes()
+                # Send data in chunks
+                bytes_sent = 0
+                while bytes_sent < len(data):
+                    chunk = data[bytes_sent:bytes_sent + 16777216]
+                    conn.sendall(chunk)
+                    bytes_sent += len(chunk)
+                    print(bytes_sent, 'bytes sent out of', len(data))
 
-                sendMessage(conn, data)
-                print(f'Sent {len(data)} bytes to', addr)
-
-                # Receive "ack" from slave
-                received = receiveMessage(conn)
-                print(f"Received '{received.decode()}' from {addr}")
-
+                print('Sent submatrix to', addr)
 
             except Exception as e:
                 print(f"An error occurred while communicating with {addr}: {e}")
 
             finally:
                 if conn:
-                    print("Closing connection with", addr)
                     conn.close()
-
-                    endTime = time.time()
-                    elapsedTime = endTime - startTime
-                    totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {addr}: {elapsedTime} seconds")
-
     except Exception as e:
         print("An error occurred in master logic:", e)
     finally:
         if masterSocket:
             masterSocket.close()
-    
-    print()
-    print("="*80)
-    print("Total time taken:", totalTime, "seconds")
 
 # function to handle logic for the slave node
 def handleSlaveLogic(n, t, masterIP, masterPort, port):
@@ -188,18 +142,17 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         slaveSocket.connect((masterIP, masterPort))
         print('Connected to master')
 
-        # receive the submatrix from the master
-        data = receiveMessage(slaveSocket)
+        data = b''
+        while True:
+            chunk = slaveSocket.recv(16777216)
+            if not chunk:
+                break
+            data += chunk
 
-        # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
         
-        # print the processed submatrix
         print("Received submatrix:")
         printMatrixTruncated(submatrix)
-
-        # Send "ack" to master
-        sendMessage(slaveSocket, b'ack')
 
     except Exception as e:
         print("An error occurred in slave logic:", e)
@@ -207,7 +160,7 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         if slaveSocket:
             slaveSocket.close()
 
-# ==================================================================================================
+# =============================================================================
 # start of the main program
 def main():
     # read the arguments from the command line

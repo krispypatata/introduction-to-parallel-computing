@@ -3,6 +3,7 @@ import socket
 import sys
 import time
 import struct
+import threading
 
 # ==================================================================================================
 # function to verify the size of a numpy matrix
@@ -120,7 +121,32 @@ def receiveAllMessage(sock, n):
 
 
 # ==================================================================================================
+# ==================================================================================================
 # function to handle logic for the master node
+def handleSlaveConnection(slaveInfo, submatrix, results):
+    conn = None
+    try:
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.connect(slaveInfo)
+        print(f'Connected to {slaveInfo}')
+
+        data = submatrix.tobytes()
+        sendMessage(conn, data)
+        print(f'Sent {len(data)} bytes to {slaveInfo}')
+
+        # Receive "ack" from slave
+        received = receiveMessage(conn)
+        print(f"Received '{received.decode()}' from {slaveInfo}")
+
+        results[slaveInfo] = "Success"
+    except Exception as e:
+        print(f"An error occurred while communicating with {slaveInfo}: {e}")
+        results[slaveInfo] = f"Failed: {e}"
+    finally:
+        if conn:
+            print(f"Closing connection with {slaveInfo}")
+            conn.close()
+
 def handleMasterLogic(n, p, t, slavesInfo):
     # generate an nxn square matrix populated with random positive integers
     M = generateNxNMatrix(n)
@@ -130,54 +156,31 @@ def handleMasterLogic(n, p, t, slavesInfo):
     # divide the matrix into t submatrices
     submatrices = divideMatrixIntoSubmatrices(M, t)
 
-    masterSocket = None
     totalTime = 0
-    try:
-        masterSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        masterSocket.bind(('', p))
-        masterSocket.listen(t)
-        print("Waiting for connections...")
+    threads = []
+    results = {}
 
-        for i in range(t):
-            conn = None
-            try:
-                conn, addr = masterSocket.accept()
-                print()
-                print("="*80)
-                print('Connected to', addr)
-                startTime = time.time()  # Record the start time after establishing connection
-                data = submatrices[i].tobytes()
+    for i, slaveInfo in enumerate(slavesInfo):
+        submatrix = submatrices[i]
+        thread = threading.Thread(target=handleSlaveConnection, args=(slaveInfo, submatrix, results))
+        threads.append(thread)
 
-                sendMessage(conn, data)
-                print(f'Sent {len(data)} bytes to', addr)
+    startTime = time.time()  # Record the start time
 
-                # Receive "ack" from slave
-                received = receiveMessage(conn)
-                print(f"Received '{received.decode()}' from {addr}")
+    for thread in threads:
+        thread.start()
 
+    for thread in threads:
+        thread.join()
 
-            except Exception as e:
-                print(f"An error occurred while communicating with {addr}: {e}")
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    totalTime += elapsedTime
 
-            finally:
-                if conn:
-                    print("Closing connection with", addr)
-                    conn.close()
-
-                    endTime = time.time()
-                    elapsedTime = endTime - startTime
-                    totalTime += elapsedTime
-                    print(f"Time taken to send submatrix to {addr}: {elapsedTime} seconds")
-
-    except Exception as e:
-        print("An error occurred in master logic:", e)
-    finally:
-        if masterSocket:
-            masterSocket.close()
-    
     print()
     print("="*80)
     print("Total time taken:", totalTime, "seconds")
+    print("Results:", results)
 
 # function to handle logic for the slave node
 def handleSlaveLogic(n, t, masterIP, masterPort, port):
@@ -185,11 +188,14 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
     try:
         slaveSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         slaveSocket.bind(('', port))
-        slaveSocket.connect((masterIP, masterPort))
+        slaveSocket.listen(1)  # Listen for connections from master
+        print("Waiting for connection from master...")
+
+        conn, addr = slaveSocket.accept()
         print('Connected to master')
 
         # receive the submatrix from the master
-        data = receiveMessage(slaveSocket)
+        data = receiveMessage(conn)
 
         # process the received data
         submatrix = np.frombuffer(data, dtype=np.uint8).reshape((-1, n))
@@ -199,7 +205,13 @@ def handleSlaveLogic(n, t, masterIP, masterPort, port):
         printMatrixTruncated(submatrix)
 
         # Send "ack" to master
-        sendMessage(slaveSocket, b'ack')
+        print("Sending 'ack' to master")
+        sendMessage(conn, b'ack')
+
+        # # Handle subsequent communication with master
+        # while True:
+        #     # For example, if you need to send more data to the master, do it here
+        #     pass
 
     except Exception as e:
         print("An error occurred in slave logic:", e)
@@ -214,8 +226,8 @@ def main():
     matrixSize, port, status = readArguments()
 
     # read the configuration file
-    configFile = "config2.in"        # 2 slaves
-    # configFile = "config16.in"     # 16 slaves
+    # configFile = "config2.in"        # 2 slaves
+    configFile = "config16.in"     # 16 slaves
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
     # print(masterIP, masterPort, numSlaves, slavesInfo)
 
