@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the filename and matrix size as variables
-FILENAME="lab04_parallel.py"
+FILENAME="lab05_parallel.py"
 MATRIX_SIZE=30000
 
 for port in {5001..5008}
