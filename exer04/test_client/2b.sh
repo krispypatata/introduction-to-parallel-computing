@@ -2,7 +2,7 @@
 
 # Define the filename and matrix size as variables
 FILENAME="lab04_parallel.py"
-MATRIX_SIZE=30000
+MATRIX_SIZE=20000
 
 for port in {5002..5002}
 do
