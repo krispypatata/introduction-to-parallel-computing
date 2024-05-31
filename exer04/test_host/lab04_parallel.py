@@ -234,10 +234,10 @@ def main():
     matrixSize, port, status = readArguments()
 
     # read the configuration file
-    # configFile = "config2.in"        # 2 slaves
+    configFile = "config2.in"        # 2 slaves
     # configFile = "config4.in"        # 4 slaves
     # configFile = "config8.in"        # 8 slaves
-    configFile = "config16.in"       # 16 slaves
+    # configFile = "config16.in"       # 16 slaves
     masterIP, masterPort, numSlaves, slavesInfo = readConfig(configFile)
     # print(masterIP, masterPort, numSlaves, slavesInfo)
 
