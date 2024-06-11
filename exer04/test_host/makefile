@@ -136,7 +136,7 @@ p4:
 	python3 lab04_parallel.py 20000 5000 0
 
 s5:
-	python3 lab05_serial.py 30000 5000 0
+	python3 lab05_serial.py 20000 5000 0
 
 p5:
 	python3 lab05_parallel.py 30000 5000 0
